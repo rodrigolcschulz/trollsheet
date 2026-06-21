@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   CLASS_LABELS,
@@ -17,10 +17,11 @@ import {
 import type { Character } from "@/lib/types/character";
 
 export function HomePage() {
-  const [characters, setCharacters] = useState<Character[]>(() => {
-    if (typeof window === "undefined") return [];
-    return listCharacters();
-  });
+  const [characters, setCharacters] = useState<Character[]>([]);
+
+  useEffect(() => {
+    setCharacters(listCharacters());
+  }, []);
 
   function handleNewCharacter() {
     startNewDraft();
@@ -38,7 +39,7 @@ export function HomePage() {
           D&amp;D 5e · SRD
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-zinc-900">
-          Character Builder
+          🧌 Trollsheet
         </h1>
         <p className="mt-2 text-zinc-600">
           Crie personagens nível 1 em passos, no estilo app mobile.

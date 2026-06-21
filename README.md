@@ -1,4 +1,4 @@
-# RPG Character Builder
+# Trollsheet
 
 Construtor de personagens para RPG de mesa, começando com **D&D 5e (SRD)** e evoluindo para uma plataforma multi-sistema.
 

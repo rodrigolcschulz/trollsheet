@@ -1,25 +1,38 @@
 export const CREATION_STEPS = [
-  { id: "race", title: "Raça", description: "Escolha a raça do personagem" },
-  { id: "class", title: "Classe", description: "Escolha a classe" },
+  {
+    id: "race",
+    title: "Raça",
+    description: "Escolha a raça do personagem",
+  },
+  {
+    id: "class",
+    title: "Classe",
+    description: "Escolha a classe",
+  },
+  {
+    id: "abilities",
+    title: "Atributos",
+    description: "Distribua seus pontos de atributo",
+  },
+  {
+    id: "skills",
+    title: "Perícias",
+    description: "Escolha as perícias da classe",
+  },
   {
     id: "background",
     title: "Background",
     description: "Escolha o antecedente",
   },
   {
-    id: "abilities",
-    title: "Atributos",
-    description: "Defina STR, DEX, CON, INT, WIS e CHA",
-  },
-  {
-    id: "skills",
-    title: "Perícias",
-    description: "Escolha proficiências em perícias",
-  },
-  {
     id: "equipment",
     title: "Equipamento",
     description: "Selecione o equipamento inicial",
+  },
+  {
+    id: "magic",
+    title: "Magia",
+    description: "Escolha magias conhecidas e veja seus slots",
   },
   {
     id: "review",

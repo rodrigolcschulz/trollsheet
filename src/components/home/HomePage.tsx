@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import {
+  CLASS_LABELS,
+  RACE_LABELS,
+  type ClassId,
+  type RaceId,
+} from "@/lib/rules/creation-data";
 import {
   deleteCharacter,
   listCharacters,
@@ -11,11 +17,10 @@ import {
 import type { Character } from "@/lib/types/character";
 
 export function HomePage() {
-  const [characters, setCharacters] = useState<Character[]>([]);
-
-  useEffect(() => {
-    setCharacters(listCharacters());
-  }, []);
+  const [characters, setCharacters] = useState<Character[]>(() => {
+    if (typeof window === "undefined") return [];
+    return listCharacters();
+  });
 
   function handleNewCharacter() {
     startNewDraft();
@@ -65,19 +70,29 @@ export function HomePage() {
                 key={character.id}
                 className="flex items-center justify-between rounded-xl border border-zinc-300 bg-white px-4 py-4"
               >
-                <div>
-                  <p className="font-medium text-zinc-900">
+                <Link
+                  href={`/character/${character.id}`}
+                  className="min-w-0 flex-1"
+                >
+                  <p className="font-medium text-zinc-900 hover:text-red-700">
                     {character.name || "Sem nome"}
                   </p>
                   <p className="text-sm capitalize text-zinc-500">
-                    {character.raceId ?? "—"} · {character.classId ?? "—"} ·
+                    {character.raceId
+                      ? RACE_LABELS[character.raceId as RaceId]
+                      : "—"}{" "}
+                    ·{" "}
+                    {character.classId
+                      ? CLASS_LABELS[character.classId as ClassId]
+                      : "—"}{" "}
+                    ·
                     nv {character.level}
                   </p>
-                </div>
+                </Link>
                 <button
                   type="button"
                   onClick={() => handleDelete(character.id)}
-                  className="text-sm text-red-600 hover:text-red-700"
+                  className="ml-4 text-sm text-red-600 hover:text-red-700"
                 >
                   Excluir
                 </button>

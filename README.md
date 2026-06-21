@@ -12,6 +12,23 @@ A ficha digital replica (e melhora) a experiência da ficha física: campos calc
 
 ---
 
+## Status atual (implementado)
+
+- Fluxo de criação mobile-first funcional com persistência local de rascunho
+- Lista de personagens salvos no dispositivo
+- Tela de detalhe do personagem salvo em rota dinâmica (`/character/[id]`)
+- Conteúdo expandido de SRD-like para:
+  - mais classes (incluindo conjuradoras)
+  - mais raças
+  - mais backgrounds
+  - equipamento inicial por classe
+- Etapa de magia no criador (versão simplificada):
+  - slots de magia por classe no nível 1
+  - seleção de magias conhecidas para classes conjuradoras
+  - resumo de magia na revisão e na tela de detalhe
+
+---
+
 ## Decisões do MVP (acordado)
 
 | Decisão | Escolha |
@@ -37,16 +54,16 @@ O app é pensado como **experiência de celular** (web responsiva, evoluindo par
 
 Criação e ficha **não competem** — o assistente monta o personagem; a ficha serve depois de criado.
 
-### Fluxo de criação (7 passos)
+### Fluxo de criação (8 passos)
 
 Cada passo ocupa **uma tela**, com barra de progresso e navegação voltar/avançar (rascunho salvo em `localStorage`):
 
 ```
-● ○ ○ ○ ○ ○ ○
-Raça → Classe → Background → Atributos → Perícias → Equipamento → Revisão
+● ○ ○ ○ ○ ○ ○ ○
+Raça → Classe → Atributos → Perícias → Background → Equipamento → Magia → Revisão
 ```
 
-A ordem segue as dependências das regras: raça altera atributos e speed; classe define saves e pool de perícias; background adiciona proficiências; equipamento depende das proficiências da classe.
+A ordem segue as dependências das regras: raça altera atributos e speed; classe define pool de perícias e kit inicial; background adiciona proficiências; equipamento e magia dependem da classe.
 
 ### Padrões de interface (mobile)
 
@@ -60,7 +77,7 @@ A ordem segue as dependências das regras: raça altera atributos e speed; class
 
 ```
 ┌─────────────────────┐
-│  ● ○ ○ ○ ○ ○ ○      │  progresso
+│  ● ○ ○ ○ ○ ○ ○ ○    │  progresso
 │  Elfo · Ladino      │  resumo (colapsável)
 │                     │
 │   Escolha sua raça  │
@@ -101,27 +118,29 @@ A ordem segue as dependências das regras: raça altera atributos e speed; class
 
 ### Fase 1 — Criação de personagem (MVP core)
 
-- [ ] Assistente mobile-first — **uma tela por passo**, barra de progresso, voltar/avançar
+- [x] Assistente mobile-first — **uma tela por passo**, barra de progresso, voltar/avançar
   1. Raça (+ sub-raça/trait)
   2. Classe
-  3. Background
-  4. Atributos (array padrão, point buy ou roll)
-  5. Perícias e proficiências
+  3. Atributos (point buy simplificado)
+  4. Perícias e proficiências
+  5. Background
   6. Equipamento inicial
-  7. Revisão e conclusão → ficha gerada
-- [ ] Cálculos automáticos derivados das regras (mod, prof, AC, HP, skills, saves)
-- [ ] Persistência local (`localStorage`) — salvar rascunho durante a criação
+  7. Magia (classes conjuradoras)
+  8. Revisão e conclusão → personagem salvo
+- [x] Cálculos automáticos derivados das regras (mod, prof, AC, HP, skills)
+- [x] Persistência local (`localStorage`) — salvar rascunho durante a criação
 - [ ] Export / import JSON do personagem criado
-- [ ] Lista simples de personagens salvos localmente (criar, abrir, duplicar, excluir)
+- [x] Lista simples de personagens salvos localmente (criar, abrir, excluir)
+- [x] Tela de visualização de personagem salvo (atributos, perícias, equipamento, magia e combate)
 
 **Fora do MVP (Fase 1):** login, PostgreSQL, campanhas, compartilhamento.
 
 ### Fase 2 — Ficha e progressão
 
-- [ ] Ficha interativa pós-criação (seções colapsáveis / tabs — substitui ficha única na mesa)
+- [~] Ficha interativa pós-criação (há tela de detalhe inicial; pode evoluir para edição completa)
 - [ ] Level-up guiado (HP, ASI/Feat, novas features, spell slots)
-- [ ] Magias (preparadas/conhecidas, slots, componentes)
-- [ ] Inventário e equipamento (armas, armaduras, carga)
+- [~] Magias (versão simplificada implementada para criação nível 1)
+- [~] Inventário e equipamento (kit inicial por classe implementado)
 - [ ] Short rest / Long rest (recuperação de recursos)
 - [ ] Export PDF / impressão
 

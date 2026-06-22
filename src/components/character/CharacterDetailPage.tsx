@@ -6,8 +6,11 @@ import {
   ABILITY_LABELS,
   BACKGROUND_LABELS,
   CLASS_LABELS,
+  EQUIPMENT_DAMAGE,
   EQUIPMENT_LABELS,
   RACE_LABELS,
+  SPELL_DAMAGE,
+  SPELL_HEALING,
   SPELL_LABELS,
   SKILL_LABELS,
   type BackgroundId,
@@ -101,7 +104,14 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
                 key={equipmentId}
                 className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700"
               >
-                {EQUIPMENT_LABELS[equipmentId] ?? equipmentId}
+                <div className="flex flex-col gap-0.5">
+                  <span>{EQUIPMENT_LABELS[equipmentId] ?? equipmentId}</span>
+                  {EQUIPMENT_DAMAGE[equipmentId] ? (
+                    <span className="text-xs text-zinc-500">
+                      Dano: {EQUIPMENT_DAMAGE[equipmentId]}
+                    </span>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
@@ -118,7 +128,14 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
                 key={spellId}
                 className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700"
               >
-                {SPELL_LABELS[spellId as SpellId] ?? spellId}
+                <div className="flex flex-col gap-0.5">
+                  <span>{SPELL_LABELS[spellId as SpellId] ?? spellId}</span>
+                  {SPELL_DAMAGE[spellId as SpellId] ? (
+                    <span className="text-xs text-zinc-500">
+                      Dano: {SPELL_DAMAGE[spellId as SpellId]}
+                    </span>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
@@ -129,13 +146,61 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
       </Section>
 
       <Section title="Combate">
-        <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="grid grid-cols-2 gap-2 text-sm mb-4">
           <Stat label="HP Máximo" value={character.maxHp} />
           <Stat label="HP Atual" value={character.currentHp} />
           <Stat label="CA" value={character.ac} />
           <Stat label="Deslocamento" value={character.speed} />
           <Stat label="Proficiência" value={character.proficiencyBonus} />
         </div>
+
+        {character.equipmentIds.some((id) => EQUIPMENT_DAMAGE[id]) && (
+          <div className="mb-3">
+            <h3 className="mb-2 text-xs font-medium uppercase text-zinc-600">Armas</h3>
+            <div className="flex flex-wrap gap-2">
+              {character.equipmentIds.map((equipmentId) =>
+                EQUIPMENT_DAMAGE[equipmentId] ? (
+                  <div
+                    key={equipmentId}
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs"
+                  >
+                    <div className="font-medium text-amber-900">
+                      {EQUIPMENT_LABELS[equipmentId] ?? equipmentId}
+                    </div>
+                    <div className="text-amber-700">{EQUIPMENT_DAMAGE[equipmentId]}</div>
+                  </div>
+                ) : null
+              )}
+            </div>
+          </div>
+        )}
+
+        {character.knownSpellIds.some(
+          (id) => SPELL_DAMAGE[id as SpellId] || SPELL_HEALING[id as SpellId]
+        ) && (
+          <div>
+            <h3 className="mb-2 text-xs font-medium uppercase text-zinc-600">Magia</h3>
+            <div className="flex flex-wrap gap-2">
+              {character.knownSpellIds.map((spellId) => {
+                const damage = SPELL_DAMAGE[spellId as SpellId];
+                const healing = SPELL_HEALING[spellId as SpellId];
+                if (!damage && !healing) return null;
+                return (
+                  <div
+                    key={spellId}
+                    className="rounded-lg border border-purple-200 bg-purple-50 px-2 py-1 text-xs"
+                  >
+                    <div className="font-medium text-purple-900">
+                      {SPELL_LABELS[spellId as SpellId] ?? spellId}
+                    </div>
+                    {damage && <div className="text-purple-700">Dano: {damage}</div>}
+                    {healing && <div className="text-green-700">Cura: {healing}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </Section>
     </div>
   );

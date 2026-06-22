@@ -10,16 +10,21 @@ import {
   ABILITY_LABELS,
   BACKGROUND_LABELS,
   BACKGROUND_OPTIONS,
+  BACKGROUND_RULES,
+  BACKGROUND_SUMMARIES,
   CLASS_SPELLCASTING,
   CLASS_STARTER_EQUIPMENT,
   CLASS_LABELS,
   CLASS_OPTIONS,
   CLASS_RULES,
+  EQUIPMENT_DAMAGE,
   EQUIPMENT_LABELS,
   RACE_OPTIONS,
   RACE_LABELS,
   RACE_RULES,
   SPELL_DESCRIPTIONS,
+  SPELL_DAMAGE,
+  SPELL_HEALING,
   SPELL_LABELS,
   SPELL_LEVELS,
   SKILL_ABILITY_MAP,
@@ -430,7 +435,9 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
                   {ABILITY_LABELS[SKILL_ABILITY_MAP[skill]]}
                 </span>
               </div>
-              <p className="mt-1 text-sm normal-case text-zinc-600">
+              <p
+                className={`mt-1 text-sm normal-case ${selected ? "text-red-100" : "text-zinc-600"}`}
+              >
                 {SKILL_DESCRIPTIONS[skill]}
               </p>
             </button>
@@ -450,7 +457,17 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
             onClick={() => setDraft((current) => ({ ...current, backgroundId }))}
             className={optionButtonClass(draft.backgroundId === backgroundId)}
           >
-            {BACKGROUND_LABELS[backgroundId]}
+            <div className="flex flex-col gap-1 normal-case">
+              <span className="capitalize">{BACKGROUND_LABELS[backgroundId]}</span>
+              <p className="text-sm text-inherit/80">
+                {BACKGROUND_SUMMARIES[backgroundId]}
+              </p>
+              <p className="text-xs uppercase tracking-wide text-inherit/70">
+                Perícias: {BACKGROUND_RULES[backgroundId].grantedSkills
+                  .map((skill) => SKILL_LABELS[skill].split(" (")[0])
+                  .join(" · ")}
+              </p>
+            </div>
           </button>
         ))}
       </>
@@ -500,7 +517,16 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
               }
               className={optionButtonClass(selected)}
             >
-              {EQUIPMENT_LABELS[equipmentId] ?? equipmentId}
+              <div className="flex flex-col gap-1 normal-case">
+                <span>{EQUIPMENT_LABELS[equipmentId] ?? equipmentId}</span>
+                {EQUIPMENT_DAMAGE[equipmentId] ? (
+                  <p
+                    className={`text-sm ${selected ? "text-white/90" : "text-zinc-600"}`}
+                  >
+                    Dano: {EQUIPMENT_DAMAGE[equipmentId]}
+                  </p>
+                ) : null}
+              </div>
             </button>
           );
         })}
@@ -589,11 +615,31 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
             >
               <div className="flex items-center justify-between gap-3">
                 <span>{SPELL_LABELS[spellId]}</span>
-                <span className="rounded-md border border-zinc-300 px-2 py-0.5 text-xs uppercase tracking-wide text-zinc-500">
+                <span
+                  className={`rounded-md border px-2 py-0.5 text-xs uppercase tracking-wide ${selected ? "border-red-200 text-red-50" : "border-zinc-300 text-zinc-500"}`}
+                >
                   Nv {SPELL_LEVELS[spellId]}
                 </span>
               </div>
-              <p className="mt-1 text-sm normal-case text-zinc-600">{SPELL_DESCRIPTIONS[spellId]}</p>
+              <p
+                className={`mt-1 text-sm normal-case ${selected ? "text-red-50" : "text-zinc-600"}`}
+              >
+                {SPELL_DESCRIPTIONS[spellId]}
+              </p>
+              {SPELL_DAMAGE[spellId] ? (
+                <p
+                  className={`mt-1 text-xs uppercase tracking-wide ${selected ? "text-white/90" : "text-zinc-500"}`}
+                >
+                  Dano: {SPELL_DAMAGE[spellId]}
+                </p>
+              ) : null}
+              {SPELL_HEALING[spellId] ? (
+                <p
+                  className={`mt-1 text-xs uppercase tracking-wide ${selected ? "text-white/90" : "text-green-600"}`}
+                >
+                  Cura: {SPELL_HEALING[spellId]}
+                </p>
+              ) : null}
             </button>
           );
         })}
@@ -602,12 +648,18 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
   }
 
   if (stepId === "review") {
+    if (!draft.classId || !(draft.classId in CLASS_RULES)) {
+      return (
+        <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-600">
+          Escolha uma classe antes de revisar o personagem.
+        </div>
+      );
+    }
+
     const reviewClassSkills =
-      draft.classId && draft.classId in CLASS_RULES
-        ? draft.skillProficiencies.filter((skill) =>
-            CLASS_RULES[draft.classId as ClassId].skillPool.includes(skill),
-          )
-        : [];
+      draft.skillProficiencies.filter((skill) =>
+        CLASS_RULES[draft.classId as ClassId].skillPool.includes(skill),
+      );
     const finalAbilities = applyRacialAbilityBonuses(draft.abilities, draft.raceId);
     const finalSkills = getFinalSkillProficiencies(
       reviewClassSkills,

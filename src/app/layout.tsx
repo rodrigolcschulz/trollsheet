@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RPG Character Builder",
+  title: "🧌 Trollsheet",
   description: "Construtor de personagens D&D 5e (SRD), mobile-first.",
 };
 

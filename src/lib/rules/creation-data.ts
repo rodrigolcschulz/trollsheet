@@ -300,6 +300,19 @@ export const BACKGROUND_RULES: Record<
   },
 };
 
+export const BACKGROUND_SUMMARIES: Record<BackgroundId, string> = {
+  acolyte: "Vida dedicada a um templo, fé e serviço espiritual.",
+  criminal: "Passado ligado ao submundo, trapaças e contatos suspeitos.",
+  soldier: "Treinamento militar, disciplina e experiência de combate.",
+  sage: "Anos de estudo, pesquisa e conhecimento arcano ou histórico.",
+  entertainer: "Palco, público e talento para encantar uma multidão.",
+  folkHero: "Alguém comum que virou referência por feitos locais.",
+  noble: "Origem privilegiada, etiqueta e responsabilidades sociais.",
+  hermit: "Solitude, contemplação e uma descoberta pessoal importante.",
+  outlander: "Vida longe da civilização, sobrevivência e exploração.",
+  urchin: "Crescimento nas ruas, improviso e sobrevivência diária.",
+};
+
 export const RACE_LABELS: Record<RaceId, string> = {
   human: "human",
   elf: "elf",
@@ -435,6 +448,18 @@ export const EQUIPMENT_LABELS: Record<string, string> = {
   "tools-thieves-tools": "Thieves' Tools",
 };
 
+export const EQUIPMENT_DAMAGE: Record<string, string> = {
+  "weapon-quarterstaff": "1d6 contundente",
+  "weapon-dagger": "1d4 perfurante",
+  "weapon-mace": "1d6 contundente",
+  "weapon-spear": "1d6 perfurante",
+  "weapon-scimitar": "1d6 cortante",
+  "weapon-longsword": "1d8 cortante",
+  "weapon-rapier": "1d8 perfurante",
+  "weapon-warhammer": "1d8 contundente",
+  "weapon-light-crossbow": "1d8 perfurante",
+};
+
 export const CLASS_STARTER_EQUIPMENT: Record<ClassId, string[]> = {
   barbarian: ["weapon-spear", "armor-shield", "pack-explorer"],
   fighter: ["weapon-longsword", "armor-chain-mail", "armor-shield", "pack-explorer"],
@@ -503,6 +528,27 @@ export const SPELL_DESCRIPTIONS: Record<SpellId, string> = {
   entangle: "Vinhas prendem criaturas em uma area.",
   thunderousSmite: "Golpe energizado com trovão para paladinos.",
 };
+
+export const SPELL_DAMAGE: Partial<Record<SpellId, string>> = {
+  magicMissile: "3x 1d4 + 1",
+  burningHands: "3d6 fogo",
+  guidingBolt: "4d6 radiante",
+  dissonantWhispers: "3d6 psíquico",
+  thunderwave: "2d8 trovão",
+  hex: "+1d6 nos acertos",
+  witchBolt: "1d12 raio",
+  thunderousSmite: "2d6 trovão",
+};
+
+export const SPELL_HEALING: Partial<Record<SpellId, string>> = {
+  healingWord: "1d4",
+  cureWounds: "1d8",
+};
+
+/**
+ * Dano de arma - tipo e quantidade
+ * Usado para calcular dano em combate corpo a corpo
+ */
 
 export const SPELL_LEVELS: Record<SpellId, 1> = {
   magicMissile: 1,

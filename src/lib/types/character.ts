@@ -65,6 +65,8 @@ export type Character = CharacterDraft & {
   currentHp: number;
   ac: number;
   speed: number;
+  currentSpellSlotsLevel1: number;
+  currentSpellSlotsLevel2: number;
 };
 
 export const DEFAULT_ABILITIES: Abilities = {

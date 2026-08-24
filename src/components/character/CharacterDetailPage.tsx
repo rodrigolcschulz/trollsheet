@@ -20,7 +20,7 @@ import {
   type RaceId,
   type SpellId,
 } from "@/lib/rules/creation-data";
-import { getCharacterById } from "@/lib/storage/characters";
+import { getCharacterById, saveCharacter } from "@/lib/storage/characters";
 import { calculateModifier, formatModifier } from "@/lib/rules/calculate";
 import {
   rollCheck,
@@ -28,19 +28,24 @@ import {
   type CheckAdvantage,
   type CheckResult,
 } from "@/lib/rules/checks";
-import type { AbilityKey } from "@/lib/types/character";
+import { LEVEL_CAP } from "@/lib/rules/leveling";
+import { LevelUpFlow } from "@/components/level-up/LevelUpFlow";
+import type { AbilityKey, Character } from "@/lib/types/character";
 
 type CharacterDetailPageProps = {
   characterId: string;
 };
 
 export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
-  const character = getCharacterById(characterId);
+  const [character, setCharacter] = useState<Character | null>(() =>
+    getCharacterById(characterId),
+  );
   const [activeCheck, setActiveCheck] = useState<CheckTarget | null>(null);
   const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
   const [advantage, setAdvantage] = useState<CheckAdvantage>("none");
   const [dc, setDc] = useState("");
   const [history, setHistory] = useState<CheckHistoryEntry[]>([]);
+  const [isLevelingUp, setIsLevelingUp] = useState(false);
 
   if (!character) {
     return (
@@ -64,6 +69,30 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
 
   function closeCheck() {
     setActiveCheck(null);
+  }
+
+  function completeLevelUp(updated: Character) {
+    saveCharacter(updated);
+    setCharacter(updated);
+    setIsLevelingUp(false);
+  }
+
+  function adjustCurrentHp(delta: number) {
+    if (!character) return;
+    const nextHp = Math.min(character.maxHp, Math.max(0, character.currentHp + delta));
+    const updated = { ...character, currentHp: nextHp };
+    saveCharacter(updated);
+    setCharacter(updated);
+  }
+
+  function adjustSpellSlot(level: 1 | 2, delta: number) {
+    if (!character) return;
+    const key = level === 1 ? "currentSpellSlotsLevel1" : "currentSpellSlotsLevel2";
+    const max = level === 1 ? character.spellSlotsLevel1 : character.spellSlotsLevel2;
+    const nextValue = Math.min(max, Math.max(0, character[key] + delta));
+    const updated = { ...character, [key]: nextValue };
+    saveCharacter(updated);
+    setCharacter(updated);
   }
 
   function performCheck() {
@@ -104,6 +133,14 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             ? BACKGROUND_LABELS[character.backgroundId as BackgroundId]
             : "Sem background"}
         </p>
+        <button
+          type="button"
+          disabled={character.level >= LEVEL_CAP}
+          onClick={() => setIsLevelingUp(true)}
+          className="mt-3 w-full rounded-lg bg-red-800 px-4 py-2 font-medium text-white hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {character.level >= LEVEL_CAP ? "Nível máximo" : "Subir de Nível"}
+        </button>
       </header>
 
       <Section title="Atributos">
@@ -211,6 +248,14 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
         />
       ) : null}
 
+      {isLevelingUp ? (
+        <LevelUpFlow
+          character={character}
+          onClose={() => setIsLevelingUp(false)}
+          onComplete={completeLevelUp}
+        />
+      ) : null}
+
       <Section title="Magia">
         {character.knownSpellIds.length === 0 ? (
           <p className="text-sm text-zinc-600">Sem magias registradas.</p>
@@ -233,15 +278,34 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             ))}
           </ul>
         )}
-        <div className="mt-2 text-sm text-zinc-600">
-          Slots: nv1 {character.spellSlotsLevel1} · nv2 {character.spellSlotsLevel2}
+        <div className="mt-2 flex flex-col gap-2">
+          <SpellSlotControl
+            label="Slots nv1"
+            current={character.currentSpellSlotsLevel1}
+            max={character.spellSlotsLevel1}
+            onDecrease={() => adjustSpellSlot(1, -1)}
+            onIncrease={() => adjustSpellSlot(1, 1)}
+          />
+          {character.spellSlotsLevel2 > 0 ? (
+            <SpellSlotControl
+              label="Slots nv2"
+              current={character.currentSpellSlotsLevel2}
+              max={character.spellSlotsLevel2}
+              onDecrease={() => adjustSpellSlot(2, -1)}
+              onIncrease={() => adjustSpellSlot(2, 1)}
+            />
+          ) : null}
         </div>
       </Section>
 
       <Section title="Combate">
         <div className="grid grid-cols-2 gap-2 text-sm mb-4">
           <Stat label="HP Máximo" value={character.maxHp} />
-          <Stat label="HP Atual" value={character.currentHp} />
+          <HpStat
+            value={character.currentHp}
+            onDecrease={() => adjustCurrentHp(-1)}
+            onIncrease={() => adjustCurrentHp(1)}
+          />
           <Stat label="CA" value={character.ac} />
           <Stat label="Deslocamento" value={character.speed} />
           <Stat label="Proficiência" value={character.proficiencyBonus} />
@@ -319,13 +383,91 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
+function HpStat({
+  value,
+  onDecrease,
+  onIncrease,
+}: {
+  value: number;
+  onDecrease: () => void;
+  onIncrease: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-zinc-300 bg-white px-3 py-2">
+      <div>
+        <p className="text-xs text-zinc-500">HP Atual</p>
+        <p className="font-semibold text-zinc-900">{value}</p>
+      </div>
+      <div className="flex gap-1">
+        <button
+          type="button"
+          aria-label="Diminuir HP atual"
+          onClick={onDecrease}
+          className="h-7 w-7 rounded-md border border-zinc-300 text-zinc-700 hover:border-red-700 hover:bg-red-50"
+        >
+          −
+        </button>
+        <button
+          type="button"
+          aria-label="Aumentar HP atual"
+          onClick={onIncrease}
+          className="h-7 w-7 rounded-md border border-zinc-300 text-zinc-700 hover:border-red-700 hover:bg-red-50"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SpellSlotControl({
+  label,
+  current,
+  max,
+  onDecrease,
+  onIncrease,
+}: {
+  label: string;
+  current: number;
+  max: number;
+  onDecrease: () => void;
+  onIncrease: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm">
+      <div>
+        <p className="text-xs text-zinc-500">{label}</p>
+        <p className="font-semibold text-zinc-900">
+          {current} / {max}
+        </p>
+      </div>
+      <div className="flex gap-1">
+        <button
+          type="button"
+          aria-label={`Usar ${label}`}
+          onClick={onDecrease}
+          className="h-7 w-7 rounded-md border border-zinc-300 text-zinc-700 hover:border-red-700 hover:bg-red-50"
+        >
+          −
+        </button>
+        <button
+          type="button"
+          aria-label={`Recuperar ${label}`}
+          onClick={onIncrease}
+          className="h-7 w-7 rounded-md border border-zinc-300 text-zinc-700 hover:border-red-700 hover:bg-red-50"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type CheckTarget = {
   title: string;
   abilityModifier: number;
   proficiencyBonus: number;
-};
-
-type CheckHistoryEntry = {
+};type CheckHistoryEntry = {
   title: string;
   result: CheckResult;
   dc?: number;

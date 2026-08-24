@@ -53,11 +53,16 @@ function normalizeDraft(input: CharacterDraft): CharacterDraft {
 }
 
 function normalizeCharacter(input: Character): Character {
+  const spellSlotsLevel1 = input.spellSlotsLevel1 ?? 0;
+  const spellSlotsLevel2 = input.spellSlotsLevel2 ?? 0;
+
   return {
     ...input,
     knownSpellIds: input.knownSpellIds ?? [],
-    spellSlotsLevel1: input.spellSlotsLevel1 ?? 0,
-    spellSlotsLevel2: input.spellSlotsLevel2 ?? 0,
+    spellSlotsLevel1,
+    spellSlotsLevel2,
+    currentSpellSlotsLevel1: input.currentSpellSlotsLevel1 ?? spellSlotsLevel1,
+    currentSpellSlotsLevel2: input.currentSpellSlotsLevel2 ?? spellSlotsLevel2,
   };
 }
 

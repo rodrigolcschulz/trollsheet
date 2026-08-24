@@ -37,8 +37,15 @@ function writeJson<T>(key: string, value: T): void {
 }
 
 function normalizeDraft(input: CharacterDraft): CharacterDraft {
+  const method = input.abilityGenerationMethod ?? "pointBuy";
+
   return {
     ...input,
+    abilityGenerationMethod: method,
+    abilityGeneration: input.abilityGeneration ?? {
+      method,
+      assignment: { ...input.abilities },
+    },
     knownSpellIds: input.knownSpellIds ?? [],
     spellSlotsLevel1: input.spellSlotsLevel1 ?? 0,
     spellSlotsLevel2: input.spellSlotsLevel2 ?? 0,

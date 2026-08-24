@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import {
   ABILITY_LABELS,
@@ -13,13 +14,21 @@ import {
   SPELL_HEALING,
   SPELL_LABELS,
   SKILL_LABELS,
+  SKILL_ABILITY_MAP,
   type BackgroundId,
   type ClassId,
   type RaceId,
   type SpellId,
 } from "@/lib/rules/creation-data";
 import { getCharacterById } from "@/lib/storage/characters";
-import type { AbilityKey, Character } from "@/lib/types/character";
+import { calculateModifier, formatModifier } from "@/lib/rules/calculate";
+import {
+  rollCheck,
+  validateCheckResult,
+  type CheckAdvantage,
+  type CheckResult,
+} from "@/lib/rules/checks";
+import type { AbilityKey } from "@/lib/types/character";
 
 type CharacterDetailPageProps = {
   characterId: string;
@@ -27,6 +36,11 @@ type CharacterDetailPageProps = {
 
 export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
   const character = getCharacterById(characterId);
+  const [activeCheck, setActiveCheck] = useState<CheckTarget | null>(null);
+  const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
+  const [advantage, setAdvantage] = useState<CheckAdvantage>("none");
+  const [dc, setDc] = useState("");
+  const [history, setHistory] = useState<CheckHistoryEntry[]>([]);
 
   if (!character) {
     return (
@@ -39,6 +53,35 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
         </div>
       </div>
     );
+  }
+
+  function openCheck(target: CheckTarget) {
+    setActiveCheck(target);
+    setCheckResult(null);
+    setAdvantage("none");
+    setDc("");
+  }
+
+  function closeCheck() {
+    setActiveCheck(null);
+  }
+
+  function performCheck() {
+    if (!activeCheck) return;
+    const result = rollCheck({
+      abilityModifier: activeCheck.abilityModifier,
+      proficiencyBonus: activeCheck.proficiencyBonus,
+      advantage,
+    });
+    const parsedValue = Number(dc);
+    const parsedDc = dc.trim() === "" || !Number.isFinite(parsedValue)
+      ? undefined
+      : parsedValue;
+    setCheckResult(result);
+    setHistory((current) => [
+      { title: activeCheck.title, result, dc: parsedDc },
+      ...current,
+    ].slice(0, 5));
   }
 
   return (
@@ -68,10 +111,20 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
           {(Object.keys(ABILITY_LABELS) as AbilityKey[]).map((ability) => (
             <div
               key={ability}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2"
+              className="flex items-center justify-between rounded-lg border border-zinc-300 bg-white px-3 py-2"
             >
-              <span className="font-medium text-zinc-700">{ABILITY_LABELS[ability]}</span>{" "}
-              <span className="text-zinc-900">{character.abilities[ability]}</span>
+              <div>
+                <span className="font-medium text-zinc-700">{ABILITY_LABELS[ability]}</span>{" "}
+                <span className="text-zinc-900">{character.abilities[ability]}</span>
+                <span className="ml-2 text-xs text-zinc-500">
+                  ({formatModifier(calculateModifier(character.abilities[ability]))})
+                </span>
+              </div>
+              <RollButton onClick={() => openCheck({
+                title: `Teste de ${ABILITY_LABELS[ability]}`,
+                abilityModifier: calculateModifier(character.abilities[ability]),
+                proficiencyBonus: 0,
+              })} />
             </div>
           ))}
         </div>
@@ -81,18 +134,45 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
         {character.skillProficiencies.length === 0 ? (
           <p className="text-sm text-zinc-600">Nenhuma perícia registrada.</p>
         ) : (
-          <ul className="flex flex-wrap gap-2">
+          <ul className="flex flex-col gap-2">
             {character.skillProficiencies.map((skill) => (
               <li
                 key={skill}
-                className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-sm text-zinc-700"
+                className="flex items-center justify-between rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700"
               >
                 {SKILL_LABELS[skill]}
+                <RollButton onClick={() => {
+                  const ability = SKILL_ABILITY_MAP[skill];
+                  openCheck({
+                    title: `Teste de ${SKILL_LABELS[skill]}`,
+                    abilityModifier: calculateModifier(character.abilities[ability]),
+                    proficiencyBonus: character.proficiencyBonus,
+                  });
+                }} />
               </li>
             ))}
           </ul>
         )}
       </Section>
+
+      {history.length > 0 ? (
+        <Section title="Histórico de rolagens">
+          <div className="flex flex-col gap-2 text-sm">
+            {history.map((entry, index) => (
+              <div key={`${entry.title}-${index}`} className="rounded-lg border border-zinc-300 bg-white px-3 py-2">
+                <div className="flex justify-between gap-2 font-medium">
+                  <span>{entry.title}</span>
+                  <span>{entry.result.total}</span>
+                </div>
+                <div className="text-zinc-500">
+                  {entry.result.rolls.length > 1 ? `d20: ${entry.result.rolls.join(" e ")} → ${entry.result.chosenRoll}` : `d20: ${entry.result.chosenRoll}`}
+                  {entry.dc !== undefined ? ` · DC ${entry.dc} · ${validateCheckResult(entry.result.total, entry.dc) === "success" ? "Sucesso" : "Falha"}` : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
 
       <Section title="Equipamento">
         {character.equipmentIds.length === 0 ? (
@@ -117,6 +197,19 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
           </ul>
         )}
       </Section>
+
+      {activeCheck ? (
+        <CheckModal
+          target={activeCheck}
+          advantage={advantage}
+          dc={dc}
+          result={checkResult}
+          onAdvantageChange={setAdvantage}
+          onDcChange={setDc}
+          onRoll={performCheck}
+          onClose={closeCheck}
+        />
+      ) : null}
 
       <Section title="Magia">
         {character.knownSpellIds.length === 0 ? (
@@ -222,6 +315,93 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div className="rounded-lg border border-zinc-300 bg-white px-3 py-2">
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="font-semibold text-zinc-900">{value}</p>
+    </div>
+  );
+}
+
+type CheckTarget = {
+  title: string;
+  abilityModifier: number;
+  proficiencyBonus: number;
+};
+
+type CheckHistoryEntry = {
+  title: string;
+  result: CheckResult;
+  dc?: number;
+};
+
+function RollButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Rolar teste"
+      title="Rolar teste"
+      onClick={onClick}
+      className="rounded-md border border-zinc-300 px-2 py-1 text-base hover:border-red-700 hover:bg-red-50"
+    >
+      🎲
+    </button>
+  );
+}
+
+function CheckModal({
+  target,
+  advantage,
+  dc,
+  result,
+  onAdvantageChange,
+  onDcChange,
+  onRoll,
+  onClose,
+}: {
+  target: CheckTarget;
+  advantage: CheckAdvantage;
+  dc: string;
+  result: CheckResult | null;
+  onAdvantageChange: (value: CheckAdvantage) => void;
+  onDcChange: (value: string) => void;
+  onRoll: () => void;
+  onClose: () => void;
+}) {
+  const parsedDc = dc.trim() === "" ? undefined : Number(dc);
+  const outcome = result ? validateCheckResult(result.total, parsedDc) : null;
+
+  return (
+    <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div role="dialog" aria-modal="true" aria-labelledby="check-title" className="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-3">
+          <h2 id="check-title" className="text-lg font-semibold text-zinc-900">{target.title}</h2>
+          <button type="button" onClick={onClose} aria-label="Fechar" className="text-xl text-zinc-500 hover:text-zinc-900">×</button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {(["none", "advantage", "disadvantage"] as CheckAdvantage[]).map((mode) => (
+            <button key={mode} type="button" onClick={() => onAdvantageChange(mode)} className={`rounded-lg border px-2 py-2 text-xs ${advantage === mode ? "border-red-800 bg-red-800 text-white" : "border-zinc-300 bg-white text-zinc-700"}`}>
+              {mode === "none" ? "Normal" : mode === "advantage" ? "Vantagem" : "Desvantagem"}
+            </button>
+          ))}
+        </div>
+
+        <label className="mt-4 flex flex-col gap-1 text-sm text-zinc-700">
+          DC (opcional)
+          <input type="number" min="1" value={dc} onChange={(event) => onDcChange(event.target.value)} className="rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 outline-none focus:ring-2 focus:ring-red-300" />
+        </label>
+
+        <button type="button" onClick={onRoll} className="mt-4 w-full rounded-lg bg-red-800 px-4 py-3 font-medium text-white hover:bg-red-900">Rolar</button>
+
+        {result ? (
+          <div className="mt-4 rounded-lg bg-zinc-100 p-3 text-sm text-zinc-800">
+            <p>
+              Rolado: {result.rolls.join(" e ")} {result.rolls.length > 1 ? `→ usa ${result.chosenRoll} (${advantage === "advantage" ? "vantagem" : "desvantagem"})` : ""}
+            </p>
+            <p className="mt-2 font-medium">
+              {result.breakdown.map((part, index) => `${index > 0 ? " + " : ""}${part.label} (${formatModifier(part.value)})`).join("")} = {result.total}
+            </p>
+            {outcome ? <p className={`mt-2 font-bold uppercase ${outcome === "success" ? "text-green-700" : "text-red-700"}`}>{outcome === "success" ? "Sucesso" : "Falha"}</p> : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

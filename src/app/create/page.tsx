@@ -10,12 +10,16 @@ export default function CreatePage() {
   const [draft, setDraft] = useState<CharacterDraft | null>(null);
 
   useEffect(() => {
-    try {
-      const existing = loadDraft();
-      setDraft(existing ?? startNewDraft());
-    } catch {
-      setDraft(startNewDraft());
-    }
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const existing = loadDraft();
+        setDraft(existing ?? startNewDraft());
+      } catch {
+        setDraft(null);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   if (!draft) {

@@ -38,6 +38,11 @@ import {
   type SpellId,
 } from "@/lib/rules/creation-data";
 import {
+  isWeakRoll,
+  rollSingleAbilityScore,
+  validateAssignment,
+} from "@/lib/rules/ability-generation";
+import {
   clearDraft,
   saveDraft,
   saveCharacter,
@@ -47,12 +52,10 @@ import type {
   Character,
   CharacterDraft,
 } from "@/lib/types/character";
+import { DEFAULT_ABILITIES } from "@/lib/types/character";
 import { calculateProficiencyBonus } from "@/lib/rules/calculate";
 import {
   getAbilityModifier,
-  getRemainingPoints,
-  canIncreaseAbility,
-  canDecreaseAbility,
 } from "@/lib/rules/abilities";
 
 type CreationShellProps = {
@@ -102,7 +105,13 @@ export function CreationShell({ initialDraft }: CreationShellProps) {
         return draft.classId !== null;
   
       case "abilities":
-        return getRemainingPoints(draft.abilities) === 0;
+        return Boolean(
+          draft.abilityGeneration.rolledValues &&
+            validateAssignment(
+              draft.abilityGeneration.rolledValues,
+              draft.abilityGeneration.assignment,
+            ).every((result) => result.valid),
+        );
 
       case "skills":
         return (
@@ -229,6 +238,121 @@ type PlaceholderStepProps = {
   setDraft: React.Dispatch<React.SetStateAction<CharacterDraft>>;
 };
 
+type AbilityRollerProps = Omit<PlaceholderStepProps, "stepId">;
+
+function AbilityRoller({
+  draft,
+  setDraft,
+}: AbilityRollerProps) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const values = draft.abilityGeneration.rolledValues ?? [];
+  const details = draft.abilityGeneration.rolledDetail ?? [];
+  const assignment = draft.abilityGeneration.assignment;
+  const abilityKeys = Object.keys(ABILITY_LABELS) as AbilityKey[];
+  const hasAssignment = abilityKeys.some((key) => assignment[key] > 0);
+
+  function roll() {
+    const rolledDetails = Array.from({ length: 6 }, () =>
+      rollSingleAbilityScore(),
+    );
+    const rolledValues = rolledDetails.map((detail) => detail.total);
+    const shouldReroll = isWeakRoll(rolledValues);
+
+    setDraft((current) => ({
+      ...current,
+      abilityGenerationMethod: "roll-4d6",
+      abilityGeneration: {
+        method: "roll-4d6",
+        rolledValues,
+        rolledDetail: rolledDetails.map(({ dice, dropped }) => ({ dice, dropped })),
+        assignment: { ...DEFAULT_ABILITIES, str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 },
+      },
+      abilities: { ...DEFAULT_ABILITIES },
+    }));
+    setSelectedIndex(null);
+
+    if (shouldReroll && window.confirm("Conjunto fraco. Deseja rolar novamente?")) {
+      window.setTimeout(roll, 0);
+    }
+  }
+
+  function reroll() {
+    if (hasAssignment && !window.confirm("Rolar novamente perderá a atribuição atual. Continuar?")) {
+      return;
+    }
+    roll();
+  }
+
+  function assign(key: AbilityKey) {
+    if (selectedIndex === null || values[selectedIndex] === undefined) return;
+    const value = values[selectedIndex];
+
+    setDraft((current) => ({
+      ...current,
+      abilities: { ...current.abilities, [key]: value },
+      abilityGeneration: {
+        ...current.abilityGeneration,
+        assignment: { ...current.abilityGeneration.assignment, [key]: value },
+      },
+    }));
+    setSelectedIndex(null);
+  }
+
+  return (
+    <>
+      <div className="rounded-xl bg-zinc-100 p-4">
+        <p className="text-sm text-zinc-600">Role 4d6, descarte o menor dado e atribua os resultados.</p>
+        <button type="button" onClick={values.length ? reroll : roll} className="mt-3 rounded-lg bg-red-800 px-4 py-3 text-sm font-medium text-white hover:bg-red-900">
+          {values.length ? "Rolar novamente" : "Rolar atributos"}
+        </button>
+      </div>
+
+      {values.length > 0 ? (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {values.map((value, index) => {
+              const detail = details[index];
+              const used = abilityKeys.some((key) => assignment[key] === value);
+              return (
+                <button key={index} type="button" onClick={() => setSelectedIndex(index)} className={`rounded-xl border p-3 text-left ${selectedIndex === index ? "border-red-800 bg-red-50" : "border-zinc-300 bg-white"}`}>
+                  <div className="font-semibold">Resultado {index + 1}: {value}</div>
+                  {detail ? (
+                    <div className="mt-1 text-sm text-zinc-600">
+                      {detail.dice.map((die, dieIndex) => (
+                        <span key={dieIndex} className={die === detail.dropped && detail.dice.indexOf(die) === dieIndex ? "mr-1 text-zinc-400 line-through" : "mr-1"}>{die}</span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {used ? <div className="text-xs text-zinc-500">Atribuído</div> : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-2 text-sm text-zinc-600">
+            {selectedIndex === null ? "Toque em um resultado e depois em um atributo." : "Agora escolha o atributo de destino."}
+          </div>
+
+          {abilityKeys.map((key) => {
+            const base = assignment[key];
+            const bonus = draft.raceId && draft.raceId in RACE_RULES ? RACE_RULES[draft.raceId as RaceId].abilityBonuses[key] ?? 0 : 0;
+            const finalValue = base > 0 ? base + bonus : null;
+            return (
+              <button key={key} type="button" onClick={() => assign(key)} className="flex items-center justify-between rounded-xl border border-zinc-300 bg-white p-4 text-left hover:border-red-400">
+                <span className="font-medium">{ABILITY_LABELS[key]}</span>
+                <span className="text-right">
+                  <strong>{base > 0 ? base : "—"}</strong>
+                  {base > 0 && bonus !== 0 ? <span className="ml-2 text-sm text-red-700">{bonus > 0 ? "+" : ""}{bonus} racial = {finalValue}</span> : null}
+                </span>
+              </button>
+            );
+          })}
+        </>
+      ) : null}
+    </>
+  );
+}
+
 function optionButtonClass(selected: boolean): string {
   return [
     "rounded-xl border px-4 py-4 text-left capitalize transition-colors",
@@ -299,72 +423,8 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
   }
 
   if (stepId === "abilities") {
-    const abilities = draft.abilities;
-
     return (
-      <>
-        <div className="mb-4 rounded-xl bg-zinc-100 p-4">
-          <div className="text-sm text-zinc-600">Pontos restantes</div>
-          <div className="text-2xl font-bold">
-            {getRemainingPoints(abilities)}
-          </div>
-        </div>
-
-        {(Object.keys(ABILITY_LABELS) as AbilityKey[]).map((key) => (
-          <div
-            key={key}
-            className="flex items-center justify-between rounded-xl border border-zinc-300 bg-white p-4"
-          >
-            <div>
-              <div className="font-medium">{ABILITY_LABELS[key]}</div>
-              <div className="text-sm text-zinc-500">
-                Modificador {getAbilityModifier(abilities[key]) >= 0 ? "+" : ""}
-                {getAbilityModifier(abilities[key])}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                disabled={!canDecreaseAbility(abilities, key)}
-                onClick={() =>
-                  setDraft((current) => ({
-                    ...current,
-                    abilities: {
-                      ...current.abilities,
-                      [key]: current.abilities[key] - 1,
-                    },
-                  }))
-                }
-                className="h-9 w-9 rounded-lg border"
-              >
-                -
-              </button>
-
-              <span className="w-8 text-center font-semibold">
-                {abilities[key]}
-              </span>
-
-              <button
-                type="button"
-                disabled={!canIncreaseAbility(abilities, key)}
-                onClick={() =>
-                  setDraft((current) => ({
-                    ...current,
-                    abilities: {
-                      ...current.abilities,
-                      [key]: current.abilities[key] + 1,
-                    },
-                  }))
-                }
-                className="h-9 w-9 rounded-lg border"
-              >
-                +
-              </button>
-            </div>
-          </div>
-        ))}
-      </>
+      <AbilityRoller draft={draft} setDraft={setDraft} />
     );
   }
 

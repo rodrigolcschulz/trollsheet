@@ -177,6 +177,8 @@ export function CreationShell({ initialDraft }: CreationShellProps) {
           draft.raceId && draft.raceId in RACE_RULES
             ? RACE_RULES[draft.raceId as RaceId].speed
             : 30,
+        currentSpellSlotsLevel1: draft.spellSlotsLevel1,
+        currentSpellSlotsLevel2: draft.spellSlotsLevel2,
       };
 
       saveCharacter(character);

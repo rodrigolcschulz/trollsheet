@@ -2,10 +2,14 @@
 > rpg_character_build@0.1.0 dev
 > next dev -p 3666
 
-▲ Next.js 16.2.9 (Turbopack)
+▲ Next.js 16.3.2 (Turbopack)
 - Local:         http://localhost:3666
 - Network:       http://172.23.64.1:3666
-✓ Ready in 468ms
+✓ Ready in 475ms
+✓ Running next.config.ts took 40ms
 
- GET /create 200 in 1647ms (next.js: 1476ms, application-code: 171ms)
+✓ Generated AGENTS.md and CLAUDE.md for AI agents. Set `agentRules: false` in next.config to disable.
+ GET /create 200 in 1424ms (next.js: 1287ms, application-code: 137ms)
+ GET /create 200 in 35ms (next.js: 9ms, application-code: 26ms)
+ GET /create 200 in 25ms (next.js: 4ms, application-code: 21ms)
 [?25h

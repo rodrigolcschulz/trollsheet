@@ -10,6 +10,26 @@ Um app web onde o jogador cria, edita e exporta fichas de personagem completas �
 
 A ficha digital replica (e melhora) a experiência da ficha física: campos calculados automaticamente, validações de regras e histórico de level-up.
 
+## Desenvolvimento local
+
+Na raiz do projeto, execute:
+
+```bash
+npm install
+npm run dev
+```
+
+Abra [http://localhost:3666](http://localhost:3666) no navegador. O script de desenvolvimento usa a porta `3666`.
+
+Comandos úteis:
+
+```bash
+npm test          # executa os testes unitários
+npm run lint      # verifica o lint
+npm run build     # gera o build de produção
+npm start         # inicia o build de produção
+```
+
 ---
 
 ## Status atual (implementado)
@@ -121,13 +141,18 @@ A ordem segue as dependências das regras: raça altera atributos e speed; class
 - [x] Assistente mobile-first — **uma tela por passo**, barra de progresso, voltar/avançar
   1. Raça (+ sub-raça/trait)
   2. Classe
-  3. Atributos (point buy simplificado)
+  3. Atributos (4d6, descarta o menor, com atribuição livre)
   4. Perícias e proficiências
   5. Background
   6. Equipamento inicial
   7. Magia (classes conjuradoras)
   8. Revisão e conclusão → personagem salvo
 - [x] Cálculos automáticos derivados das regras (mod, prof, AC, HP, skills)
+- [x] Atributos por rolagem 4d6, com detalhe dos dados e descarte visível
+
+Novos personagens usam exclusivamente 4d6 descartando o menor. O marcador `pointBuy`
+permanece no modelo apenas para que personagens e rascunhos antigos continuem sendo
+lidos normalmente.
 - [x] Persistência local (`localStorage`) — salvar rascunho durante a criação
 - [ ] Export / import JSON do personagem criado
 - [x] Lista simples de personagens salvos localmente (criar, abrir, excluir)

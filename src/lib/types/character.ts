@@ -22,7 +22,16 @@ export type SkillKey =
   | "stealth"
   | "survival";
 
-export type AbilityGenerationMethod = "pointBuy";
+export type AbilityGenerationMethod =
+  | "roll-4d6"
+  | "pointBuy";
+
+export type AbilityGeneration = {
+  method: AbilityGenerationMethod;
+  rolledValues?: number[];
+  rolledDetail?: { dice: number[]; dropped: number }[];
+  assignment: Abilities;
+};
 
 export type CharacterDraft = {
   id: string;
@@ -36,6 +45,7 @@ export type CharacterDraft = {
   backgroundId: string | null;
 
   abilityGenerationMethod: AbilityGenerationMethod;
+  abilityGeneration: AbilityGeneration;
 
   abilities: Abilities;
 
@@ -75,7 +85,11 @@ export function createEmptyDraft(id: string): CharacterDraft {
     raceId: null,
     classId: null,
     backgroundId: null,
-    abilityGenerationMethod: "pointBuy",
+    abilityGenerationMethod: "roll-4d6",
+    abilityGeneration: {
+      method: "roll-4d6",
+      assignment: { ...DEFAULT_ABILITIES },
+    },
     abilities: { ...DEFAULT_ABILITIES },
     skillProficiencies: [],
     equipmentIds: [],

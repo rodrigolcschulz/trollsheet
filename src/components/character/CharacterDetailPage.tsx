@@ -20,7 +20,7 @@ import {
   type RaceId,
   type SpellId,
 } from "@/lib/rules/creation-data";
-import { getCharacterById, saveCharacter } from "@/lib/storage/characters";
+import { getCharacterById, saveCharacter, downloadCharacterFile } from "@/lib/storage/characters";
 import { calculateModifier, formatModifier } from "@/lib/rules/calculate";
 import {
   rollCheck,
@@ -133,14 +133,23 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             ? BACKGROUND_LABELS[character.backgroundId as BackgroundId]
             : "Sem background"}
         </p>
-        <button
-          type="button"
-          disabled={character.level >= LEVEL_CAP}
-          onClick={() => setIsLevelingUp(true)}
-          className="mt-3 w-full rounded-lg bg-red-800 px-4 py-2 font-medium text-white hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {character.level >= LEVEL_CAP ? "Nível máximo" : "Subir de Nível"}
-        </button>
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            disabled={character.level >= LEVEL_CAP}
+            onClick={() => setIsLevelingUp(true)}
+            className="flex-1 rounded-lg bg-red-800 px-4 py-2 text-sm font-medium text-white hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {character.level >= LEVEL_CAP ? "Nível máximo" : "Subir de Nível"}
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadCharacterFile(character)}
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Exportar
+          </button>
+        </div>
       </header>
 
       <Section title="Atributos">

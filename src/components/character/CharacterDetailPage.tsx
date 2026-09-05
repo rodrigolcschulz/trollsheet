@@ -21,12 +21,17 @@ import {
   type SpellId,
 } from "@/lib/rules/creation-data";
 import { getCharacterById, saveCharacter, downloadCharacterFile } from "@/lib/storage/characters";
-import { calculateModifier, formatModifier } from "@/lib/rules/calculate";
+import { calculateArmorClass, calculateModifier, formatModifier } from "@/lib/rules/calculate";
 import {
   rollCheck,
   validateCheckResult,
   type CheckAdvantage,
   type CheckResult,
+  parseDiceFormula,
+  rollFormula,
+  getWeaponAbility,
+  getSpellcastingAbility,
+  type DiceRollResult,
 } from "@/lib/rules/checks";
 import { LEVEL_CAP } from "@/lib/rules/leveling";
 import { LevelUpFlow } from "@/components/level-up/LevelUpFlow";
@@ -46,6 +51,19 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
   const [dc, setDc] = useState("");
   const [history, setHistory] = useState<CheckHistoryEntry[]>([]);
   const [isLevelingUp, setIsLevelingUp] = useState(false);
+
+  // States for weapon and spell rolling
+  const [activeCombatRoll, setActiveCombatRoll] = useState<CombatRollTarget | null>(null);
+  const [combatRollResult, setCombatRollResult] = useState<{
+    attack?: CheckResult;
+    damage?: DiceRollResult;
+  } | null>(null);
+  const [combatAdvantage, setCombatAdvantage] = useState<CheckAdvantage>("none");
+  const [combatDc, setCombatDc] = useState("");
+
+  // States for bio editing
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [bioText, setBioText] = useState("");
 
   if (!character) {
     return (
@@ -75,6 +93,19 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
     saveCharacter(updated);
     setCharacter(updated);
     setIsLevelingUp(false);
+  }
+
+  function startEditingBio() {
+    setBioText(character?.bio ?? "");
+    setIsEditingBio(true);
+  }
+
+  function handleSaveBio() {
+    if (!character) return;
+    const updated = { ...character, bio: bioText.trim() };
+    saveCharacter(updated);
+    setCharacter(updated);
+    setIsEditingBio(false);
   }
 
   function adjustCurrentHp(delta: number) {
@@ -107,8 +138,138 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
       ? undefined
       : parsedValue;
     setCheckResult(result);
+
+    const d20Text = result.rolls.length > 1
+      ? `d20: ${result.rolls.join(" e ")} → ${result.chosenRoll}`
+      : `d20: ${result.chosenRoll}`;
+    const dcText = parsedDc !== undefined
+      ? ` · DC ${parsedDc} · ${validateCheckResult(result.total, parsedDc) === "success" ? "Sucesso" : "Falha"}`
+      : "";
+    const detail = `${d20Text}${dcText}`;
+
     setHistory((current) => [
-      { title: activeCheck.title, result, dc: parsedDc },
+      { title: activeCheck.title, total: result.total, detail },
+      ...current,
+    ].slice(0, 5));
+  }
+
+  function openWeaponRoll(equipmentId: string) {
+    if (!character) return;
+    const formulaStr = EQUIPMENT_DAMAGE[equipmentId] || "1d4";
+    const parsed = parseDiceFormula(formulaStr);
+    if (!parsed) return;
+
+    const weaponAbility = getWeaponAbility(equipmentId, character.abilities);
+    const abilityModifier = calculateModifier(character.abilities[weaponAbility]);
+    const name = EQUIPMENT_LABELS[equipmentId] ?? equipmentId;
+
+    setActiveCombatRoll({
+      name,
+      formula: formulaStr,
+      isSpell: false,
+      abilityModifier,
+      proficiencyBonus: character.proficiencyBonus,
+      diceFormula: `${parsed.diceCount}d${parsed.diceSides}`,
+      damageModifier: abilityModifier,
+      damageType: parsed.type,
+      isHealing: false,
+      multiplier: parsed.multiplier,
+    });
+    setCombatRollResult(null);
+    setCombatAdvantage("none");
+    setCombatDc("");
+  }
+
+  function openSpellRoll(spellId: SpellId) {
+    if (!character) return;
+    const damageFormula = SPELL_DAMAGE[spellId];
+    const healingFormula = SPELL_HEALING[spellId];
+    const formulaStr = damageFormula || healingFormula || "1d20";
+    const parsed = parseDiceFormula(formulaStr) || {
+      multiplier: 1,
+      diceCount: 0,
+      diceSides: 0,
+      modifier: 0,
+      type: undefined,
+    };
+
+    const spellcastingAbility = getSpellcastingAbility(character.classId);
+    const abilityModifier = calculateModifier(character.abilities[spellcastingAbility]);
+
+    const isHealing = !!healingFormula;
+    const damageModifier = isHealing ? abilityModifier : 0;
+    const name = SPELL_LABELS[spellId] ?? spellId;
+
+    setActiveCombatRoll({
+      name,
+      formula: formulaStr,
+      isSpell: true,
+      abilityModifier,
+      proficiencyBonus: character.proficiencyBonus,
+      diceFormula: parsed.diceCount > 0 ? `${parsed.diceCount}d${parsed.diceSides}` : "",
+      damageModifier,
+      damageType: isHealing ? "cura" : parsed.type,
+      isHealing,
+      multiplier: parsed.multiplier,
+    });
+    setCombatRollResult(null);
+    setCombatAdvantage("none");
+    setCombatDc("");
+  }
+
+  function closeCombatRoll() {
+    setActiveCombatRoll(null);
+  }
+
+  function performCombatAttack() {
+    if (!activeCombatRoll) return;
+    const result = rollCheck({
+      abilityModifier: activeCombatRoll.abilityModifier,
+      proficiencyBonus: activeCombatRoll.proficiencyBonus,
+      advantage: combatAdvantage,
+    });
+    const parsedValue = Number(combatDc);
+    const parsedDc = combatDc.trim() === "" || !Number.isFinite(parsedValue)
+      ? undefined
+      : parsedValue;
+
+    setCombatRollResult((curr) => ({
+      ...curr,
+      attack: result,
+    }));
+
+    const d20Text = result.rolls.length > 1
+      ? `d20: ${result.rolls.join(" e ")} → ${result.chosenRoll}`
+      : `d20: ${result.chosenRoll}`;
+    const dcText = parsedDc !== undefined
+      ? ` · CA ${parsedDc} · ${result.total >= parsedDc ? "Acertou" : "Errou"}`
+      : "";
+    const detail = `${d20Text}${dcText} (Mod: ${formatModifier(activeCombatRoll.abilityModifier)} + Prof: ${activeCombatRoll.proficiencyBonus})`;
+
+    setHistory((current) => [
+      { title: `Ataque: ${activeCombatRoll.name}`, total: result.total, detail },
+      ...current,
+    ].slice(0, 5));
+  }
+
+  function performCombatDamage() {
+    if (!activeCombatRoll) return;
+    const formulaStr = activeCombatRoll.formula;
+    const parsed = parseDiceFormula(formulaStr);
+    if (!parsed) return;
+
+    const result = rollFormula(parsed, activeCombatRoll.damageModifier);
+    setCombatRollResult((curr) => ({
+      ...curr,
+      damage: result,
+    }));
+
+    const typeSuffix = activeCombatRoll.damageType ? ` de ${activeCombatRoll.damageType}` : "";
+    const titlePrefix = activeCombatRoll.isHealing ? "Cura" : "Dano";
+    const detail = `${result.breakdown}${typeSuffix}`;
+
+    setHistory((current) => [
+      { title: `${titlePrefix}: ${activeCombatRoll.name}`, total: result.total, detail },
       ...current,
     ].slice(0, 5));
   }
@@ -208,11 +369,10 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
               <div key={`${entry.title}-${index}`} className="rounded-lg border border-zinc-300 bg-white px-3 py-2">
                 <div className="flex justify-between gap-2 font-medium">
                   <span>{entry.title}</span>
-                  <span>{entry.result.total}</span>
+                  <span>{entry.total}</span>
                 </div>
                 <div className="text-zinc-500">
-                  {entry.result.rolls.length > 1 ? `d20: ${entry.result.rolls.join(" e ")} → ${entry.result.chosenRoll}` : `d20: ${entry.result.chosenRoll}`}
-                  {entry.dc !== undefined ? ` · DC ${entry.dc} · ${validateCheckResult(entry.result.total, entry.dc) === "success" ? "Sucesso" : "Falha"}` : ""}
+                  {entry.detail}
                 </div>
               </div>
             ))}
@@ -228,7 +388,7 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             {character.equipmentIds.map((equipmentId) => (
               <li
                 key={equipmentId}
-                className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700"
+                className="flex items-center justify-between rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700"
               >
                 <div className="flex flex-col gap-0.5">
                   <span>{EQUIPMENT_LABELS[equipmentId] ?? equipmentId}</span>
@@ -238,6 +398,9 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
                     </span>
                   ) : null}
                 </div>
+                {EQUIPMENT_DAMAGE[equipmentId] && (
+                  <RollButton onClick={() => openWeaponRoll(equipmentId)} />
+                )}
               </li>
             ))}
           </ul>
@@ -257,6 +420,20 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
         />
       ) : null}
 
+      {activeCombatRoll ? (
+        <CombatRollModal
+          target={activeCombatRoll}
+          advantage={combatAdvantage}
+          dc={combatDc}
+          result={combatRollResult}
+          onAdvantageChange={setCombatAdvantage}
+          onDcChange={setCombatDc}
+          onAttack={performCombatAttack}
+          onDamage={performCombatDamage}
+          onClose={closeCombatRoll}
+        />
+      ) : null}
+
       {isLevelingUp ? (
         <LevelUpFlow
           character={character}
@@ -273,7 +450,7 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             {character.knownSpellIds.map((spellId) => (
               <li
                 key={spellId}
-                className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700"
+                className="flex items-center justify-between rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700"
               >
                 <div className="flex flex-col gap-0.5">
                   <span>{SPELL_LABELS[spellId as SpellId] ?? spellId}</span>
@@ -281,8 +458,13 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
                     <span className="text-xs text-zinc-500">
                       Dano: {SPELL_DAMAGE[spellId as SpellId]}
                     </span>
+                  ) : SPELL_HEALING[spellId as SpellId] ? (
+                    <span className="text-xs text-zinc-500">
+                      Cura: {SPELL_HEALING[spellId as SpellId]}
+                    </span>
                   ) : null}
                 </div>
+                <RollButton onClick={() => openSpellRoll(spellId as SpellId)} />
               </li>
             ))}
           </ul>
@@ -315,7 +497,19 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             onDecrease={() => adjustCurrentHp(-1)}
             onIncrease={() => adjustCurrentHp(1)}
           />
-          <Stat label="CA" value={character.ac} />
+          <div className="rounded-lg border border-zinc-300 bg-white px-3 py-2">
+            <p className="text-xs text-zinc-500">CA</p>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-semibold text-zinc-900">
+                {calculateArmorClass(character.abilities, character.equipmentIds, character.classId).total}
+              </span>
+              {calculateArmorClass(character.abilities, character.equipmentIds, character.classId).detail && (
+                <span className="text-xs text-zinc-500">
+                  {calculateArmorClass(character.abilities, character.equipmentIds, character.classId).detail}
+                </span>
+              )}
+            </div>
+          </div>
           <Stat label="Deslocamento" value={character.speed} />
           <Stat label="Proficiência" value={character.proficiencyBonus} />
         </div>
@@ -326,15 +520,18 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             <div className="flex flex-wrap gap-2">
               {character.equipmentIds.map((equipmentId) =>
                 EQUIPMENT_DAMAGE[equipmentId] ? (
-                  <div
+                  <button
                     key={equipmentId}
-                    className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs"
+                    type="button"
+                    onClick={() => openWeaponRoll(equipmentId)}
+                    className="flex flex-col items-start rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-left hover:border-amber-400 hover:bg-amber-100 transition-colors cursor-pointer"
                   >
-                    <div className="font-medium text-amber-900">
-                      {EQUIPMENT_LABELS[equipmentId] ?? equipmentId}
+                    <div className="flex items-center gap-1 font-medium text-amber-900">
+                      <span>{EQUIPMENT_LABELS[equipmentId] ?? equipmentId}</span>
+                      <span>🎲</span>
                     </div>
                     <div className="text-amber-700">{EQUIPMENT_DAMAGE[equipmentId]}</div>
-                  </div>
+                  </button>
                 ) : null
               )}
             </div>
@@ -352,18 +549,69 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
                 const healing = SPELL_HEALING[spellId as SpellId];
                 if (!damage && !healing) return null;
                 return (
-                  <div
+                  <button
                     key={spellId}
-                    className="rounded-lg border border-purple-200 bg-purple-50 px-2 py-1 text-xs"
+                    type="button"
+                    onClick={() => openSpellRoll(spellId as SpellId)}
+                    className="flex flex-col items-start rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs text-left hover:border-purple-400 hover:bg-purple-100 transition-colors cursor-pointer"
                   >
-                    <div className="font-medium text-purple-900">
-                      {SPELL_LABELS[spellId as SpellId] ?? spellId}
+                    <div className="flex items-center gap-1 font-medium text-purple-900">
+                      <span>{SPELL_LABELS[spellId as SpellId] ?? spellId}</span>
+                      <span>🎲</span>
                     </div>
                     {damage && <div className="text-purple-700">Dano: {damage}</div>}
                     {healing && <div className="text-green-700">Cura: {healing}</div>}
-                  </div>
+                  </button>
                 );
               })}
+            </div>
+          </div>
+        )}
+      </Section>
+
+      <Section title="História / Biografia">
+        {isEditingBio ? (
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={bioText}
+              onChange={(e) => setBioText(e.target.value)}
+              placeholder="Escreva a história, personalidade ou anotações do seu personagem..."
+              className="w-full rounded-lg border border-zinc-300 bg-white p-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none ring-red-300 focus:ring-2 min-h-[110px] resize-y"
+              rows={4}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditingBio(false)}
+                className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveBio}
+                className="rounded-lg bg-red-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-900 cursor-pointer"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={startEditingBio}
+            className="group relative cursor-pointer rounded-lg border border-zinc-300 bg-white p-3 text-sm text-zinc-700 hover:border-zinc-400 transition-colors"
+          >
+            {character.bio && character.bio.trim().length > 0 ? (
+              <p className="whitespace-pre-wrap text-zinc-800 leading-relaxed">{character.bio}</p>
+            ) : (
+              <p className="text-zinc-400 italic">
+                Nenhuma história definida. Toque aqui para adicionar uma biografia ou anotações...
+              </p>
+            )}
+            <div className="mt-2 flex justify-end">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-red-800 opacity-80 group-hover:opacity-100">
+                ✏️ Editar bio
+              </span>
             </div>
           </div>
         )}
@@ -476,10 +724,25 @@ type CheckTarget = {
   title: string;
   abilityModifier: number;
   proficiencyBonus: number;
-};type CheckHistoryEntry = {
+};
+
+type CombatRollTarget = {
+  name: string;
+  formula: string;
+  isSpell: boolean;
+  abilityModifier: number;
+  proficiencyBonus: number;
+  diceFormula: string;
+  damageModifier: number;
+  damageType?: string;
+  isHealing: boolean;
+  multiplier: number;
+};
+
+type CheckHistoryEntry = {
   title: string;
-  result: CheckResult;
-  dc?: number;
+  total: number;
+  detail: string;
 };
 
 function RollButton({ onClick }: { onClick: () => void }) {
@@ -556,3 +819,149 @@ function CheckModal({
     </div>
   );
 }
+
+function CombatRollModal({
+  target,
+  advantage,
+  dc,
+  result,
+  onAdvantageChange,
+  onDcChange,
+  onAttack,
+  onDamage,
+  onClose,
+}: {
+  target: CombatRollTarget;
+  advantage: CheckAdvantage;
+  dc: string;
+  result: { attack?: CheckResult; damage?: DiceRollResult } | null;
+  onAdvantageChange: (value: CheckAdvantage) => void;
+  onDcChange: (value: string) => void;
+  onAttack: () => void;
+  onDamage: () => void;
+  onClose: () => void;
+}) {
+  const parsedDc = dc.trim() === "" ? undefined : Number(dc);
+  const attackOutcome = result?.attack
+    ? parsedDc !== undefined
+      ? result.attack.total >= parsedDc
+        ? "success"
+        : "failure"
+      : null
+    : null;
+
+  return (
+    <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="combat-roll-title"
+        className="w-full max-w-md rounded-xl border border-zinc-300 bg-white p-5 shadow-xl"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="combat-roll-title" className="text-lg font-semibold text-zinc-900">
+              {target.name}
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Fórmula: {target.formula}
+              {target.damageType ? ` (${target.damageType})` : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="text-xl text-zinc-500 hover:text-zinc-900 cursor-pointer"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4">
+          <div>
+            <span className="text-xs font-semibold uppercase text-zinc-600">1. Teste de Ataque</span>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {(["none", "advantage", "disadvantage"] as CheckAdvantage[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => onAdvantageChange(mode)}
+                  className={`rounded-lg border px-2 py-1.5 text-xs font-medium cursor-pointer ${
+                    advantage === mode
+                      ? "border-red-800 bg-red-800 text-white"
+                      : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  {mode === "none" ? "Normal" : mode === "advantage" ? "Vantagem" : "Desvantagem"}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <input
+                type="number"
+                min="1"
+                placeholder="CA do alvo (opcional)"
+                value={dc}
+                onChange={(e) => onDcChange(e.target.value)}
+                className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-xs text-zinc-900 outline-none focus:ring-2 focus:ring-red-300"
+              />
+              <button
+                type="button"
+                onClick={onAttack}
+                className="rounded-lg bg-red-800 px-4 py-2 text-xs font-medium text-white hover:bg-red-900 cursor-pointer"
+              >
+                Rolar Ataque
+              </button>
+            </div>
+            {result?.attack ? (
+              <div className="mt-2 rounded-lg bg-zinc-100 p-2.5 text-xs text-zinc-800">
+                <p>
+                  d20: {result.attack.rolls.join(" e ")}
+                  {result.attack.rolls.length > 1 ? ` → usa ${result.attack.chosenRoll}` : ""}
+                  {" + "}
+                  {formatModifier(target.abilityModifier)} mod + {target.proficiencyBonus} prof ={" "}
+                  <strong className="text-zinc-900 text-sm">{result.attack.total}</strong>
+                </p>
+                {attackOutcome ? (
+                  <p
+                    className={`mt-1 font-bold uppercase ${
+                      attackOutcome === "success" ? "text-green-700" : "text-red-700"
+                    }`}
+                  >
+                    {attackOutcome === "success" ? "Acertou!" : "Errou!"}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="border-t border-zinc-200 pt-3">
+            <span className="text-xs font-semibold uppercase text-zinc-600">
+              2. {target.isHealing ? "Rolagem de Cura" : "Rolagem de Dano"}
+            </span>
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={onDamage}
+                className="w-full rounded-lg bg-amber-700 px-4 py-2.5 text-xs font-medium text-white hover:bg-amber-800 cursor-pointer"
+              >
+                {target.isHealing ? "Rolar Cura" : "Rolar Dano"} ({target.formula})
+              </button>
+            </div>
+            {result?.damage ? (
+              <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-950">
+                <p className="font-medium">{result.damage.breakdown}</p>
+                <p className="mt-1 text-sm font-bold">
+                  Total: {result.damage.total}
+                  {target.damageType ? ` (${target.damageType})` : ""}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

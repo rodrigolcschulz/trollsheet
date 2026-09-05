@@ -41,6 +41,7 @@ function normalizeDraft(input: CharacterDraft): CharacterDraft {
 
   return {
     ...input,
+    bio: input.bio ?? "",
     abilityGenerationMethod: method,
     abilityGeneration: input.abilityGeneration ?? {
       method,
@@ -58,6 +59,7 @@ function normalizeCharacter(input: Character): Character {
 
   return {
     ...input,
+    bio: input.bio ?? "",
     knownSpellIds: input.knownSpellIds ?? [],
     spellSlotsLevel1,
     spellSlotsLevel2,

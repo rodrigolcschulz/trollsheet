@@ -10,7 +10,7 @@ import {
   type ClassId,
   type SpellId,
 } from "@/lib/rules/creation-data";
-import { calculateModifier, calculateProficiencyBonus } from "@/lib/rules/calculate";
+import { calculateArmorClass, calculateModifier, calculateProficiencyBonus } from "@/lib/rules/calculate";
 import {
   applyAsiChoice,
   calculateHpGain,
@@ -115,6 +115,7 @@ export function LevelUpFlow({ character, onClose, onComplete }: LevelUpFlowProps
       maxHp: character.maxHp + hpGain,
       currentHp: character.currentHp + hpGain,
       abilities: nextAbilities,
+      ac: calculateArmorClass(nextAbilities, character.equipmentIds, character.classId).total,
       spellSlotsLevel1: slots.slotLevel1,
       spellSlotsLevel2: slots.slotLevel2,
       currentSpellSlotsLevel1: slots.slotLevel1,

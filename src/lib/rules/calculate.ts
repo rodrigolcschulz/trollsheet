@@ -19,6 +19,75 @@ export function formatModifier(modifier: number): string {
   return modifier >= 0 ? `+${modifier}` : `${modifier}`;
 }
 
+export type ArmorClassResult = {
+  total: number;
+  base: number;
+  dexModifier: number;
+  armorBonus: number;
+  shieldBonus: number;
+  detail: string;
+};
+
+export function calculateArmorClass(
+  abilities: Abilities,
+  equipmentIds: string[] = [],
+  classId?: string | null
+): ArmorClassResult {
+  const dexMod = calculateModifier(abilities.dex);
+  const conMod = calculateModifier(abilities.con);
+
+  const hasChainMail = equipmentIds.includes("armor-chain-mail");
+  const hasScaleMail = equipmentIds.includes("armor-scale-mail");
+  const hasLeather = equipmentIds.includes("armor-leather");
+  const hasShield = equipmentIds.includes("armor-shield");
+  const shieldBonus = hasShield ? 2 : 0;
+
+  let base = 10;
+  let dexContribution = dexMod;
+  let armorBonus = 0;
+
+  const parts: string[] = [];
+
+  if (hasChainMail) {
+    base = 16;
+    armorBonus = 6;
+    dexContribution = 0;
+    parts.push("Cota de Malha");
+  } else if (hasScaleMail) {
+    base = 14;
+    armorBonus = 4;
+    dexContribution = Math.min(2, Math.max(0, dexMod));
+    parts.push(`Escamas + Des: ${formatModifier(dexContribution)}`);
+  } else if (hasLeather) {
+    base = 11;
+    armorBonus = 1;
+    dexContribution = dexMod;
+    parts.push(`Couro + Des: ${formatModifier(dexMod)}`);
+  } else if (classId === "barbarian") {
+    base = 10 + conMod;
+    dexContribution = dexMod;
+    parts.push(`Bárbaro: Des ${formatModifier(dexMod)}, Con ${formatModifier(conMod)}`);
+  } else {
+    parts.push(`Des: ${formatModifier(dexMod)}`);
+  }
+
+  if (hasShield) {
+    parts.push("Escudo: +2");
+  }
+
+  const total = base + dexContribution + shieldBonus;
+  const detail = parts.length > 0 ? `(${parts.join(", ")})` : "";
+
+  return {
+    total,
+    base,
+    dexModifier: dexMod,
+    armorBonus,
+    shieldBonus,
+    detail,
+  };
+}
+
 /**
  * Calcula o dano de um spell de magia
  * Exemplo: "3d6 fogo" retorna um objeto com dados e tipo de dano

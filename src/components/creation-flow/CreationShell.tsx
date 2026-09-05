@@ -53,7 +53,7 @@ import type {
   CharacterDraft,
 } from "@/lib/types/character";
 import { DEFAULT_ABILITIES } from "@/lib/types/character";
-import { calculateProficiencyBonus } from "@/lib/rules/calculate";
+import { calculateArmorClass, calculateProficiencyBonus } from "@/lib/rules/calculate";
 import {
   getAbilityModifier,
 } from "@/lib/rules/abilities";
@@ -165,6 +165,7 @@ export function CreationShell({ initialDraft }: CreationShellProps) {
       const character: Character = {
         ...draft,
         name: draft.name.trim(),
+        bio: (draft.bio ?? "").trim(),
         abilities: finalAbilities,
         skillProficiencies: finalSkills,
         createdAt: new Date().toISOString(),
@@ -172,7 +173,7 @@ export function CreationShell({ initialDraft }: CreationShellProps) {
         proficiencyBonus: calculateProficiencyBonus(1),
         maxHp: Math.max(1, (classRules?.hitDie ?? 8) + conMod),
         currentHp: Math.max(1, (classRules?.hitDie ?? 8) + conMod),
-        ac: 10 + dexMod,
+        ac: calculateArmorClass(finalAbilities, draft.equipmentIds, draft.classId).total,
         speed:
           draft.raceId && draft.raceId in RACE_RULES
             ? RACE_RULES[draft.raceId as RaceId].speed
@@ -623,7 +624,7 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
     if (!spellcasting || spellcasting.maxKnownSpells === 0) {
       return (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-600">
-          Esta classe nao possui magia no nivel 1 nesta versao simplificada.
+          Esta classe não possui magia no nível 1 nesta versão simplificada.
         </div>
       );
     }
@@ -636,7 +637,7 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
     return (
       <>
         <div className="rounded-xl bg-zinc-100 p-4 text-sm text-zinc-700">
-          <p>Slots de magia: nivel 1 = {draft.spellSlotsLevel1} · nivel 2 = {draft.spellSlotsLevel2}</p>
+          <p>Slots de magia: nível 1 = {draft.spellSlotsLevel1} · nível 2 = {draft.spellSlotsLevel2}</p>
           <p className="mt-1">Magias conhecidas: {selectedSpells.length}/{spellcasting.maxKnownSpells}</p>
         </div>
 
@@ -743,9 +744,24 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
           />
         </label>
 
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-zinc-700">
+            Biografia / História <span className="text-xs font-normal text-zinc-500">(opcional)</span>
+          </span>
+          <textarea
+            value={draft.bio ?? ""}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, bio: event.target.value }))
+            }
+            placeholder="Conte um pouco sobre as origens, motivações ou visual do personagem..."
+            rows={3}
+            className="rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 outline-none ring-red-300 focus:ring-2 resize-y"
+          />
+        </label>
+
         <div className="rounded-xl border border-zinc-300 bg-white p-4 text-sm text-zinc-700">
           <p>
-            <strong>Raca:</strong>{" "}
+            <strong>Raça:</strong>{" "}
             {draft.raceId ? RACE_LABELS[draft.raceId as RaceId] : "-"}
           </p>
           <p>
@@ -759,7 +775,7 @@ function PlaceholderStep({ stepId, draft, setDraft }: PlaceholderStepProps) {
               : "-"}
           </p>
           <p>
-            <strong>Pericias:</strong>{" "}
+            <strong>Perícias:</strong>{" "}
             {finalSkills.length > 0
               ? finalSkills.map((skill) => SKILL_LABELS[skill]).join(", ")
               : "-"}

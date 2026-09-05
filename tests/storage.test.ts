@@ -29,6 +29,7 @@ describe("storage and validation", () => {
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     name: "Troll Champion",
+    bio: "Um guerreiro feroz das terras do norte.",
     raceId: "orc",
     classId: "barbarian",
     backgroundId: "outlander",
@@ -60,11 +61,13 @@ describe("storage and validation", () => {
     expect(imported).not.toBeNull();
     expect(imported?.id).toBe("test-id-123");
     expect(imported?.name).toBe("Troll Champion");
+    expect(imported?.bio).toBe("Um guerreiro feroz das terras do norte.");
     expect(imported?.level).toBe(1);
 
     const saved = listCharacters();
     expect(saved).toHaveLength(1);
     expect(saved[0].name).toBe("Troll Champion");
+    expect(saved[0].bio).toBe("Um guerreiro feroz das terras do norte.");
   });
 
   it("fails to import an invalid character JSON", () => {

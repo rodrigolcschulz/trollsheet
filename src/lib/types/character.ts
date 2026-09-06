@@ -39,6 +39,7 @@ export type CharacterDraft = {
   updatedAt: string;
 
   name: string;
+  bio?: string;
 
   raceId: string | null;
   classId: string | null;
@@ -84,6 +85,7 @@ export function createEmptyDraft(id: string): CharacterDraft {
     step: 0,
     updatedAt: new Date().toISOString(),
     name: "",
+    bio: "",
     raceId: null,
     classId: null,
     backgroundId: null,
@@ -100,3 +102,4 @@ export function createEmptyDraft(id: string): CharacterDraft {
     spellSlotsLevel2: 0,
   };
 }
+

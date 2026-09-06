@@ -22,6 +22,7 @@ export const CLASS_OPTIONS = [
   "druid",
   "bard",
   "paladin",
+  "ranger",
 ] as const;
 export const BACKGROUND_OPTIONS = [
   "acolyte",
@@ -189,6 +190,20 @@ export const CLASS_RULES: Record<
       "religion",
     ],
   },
+  ranger: {
+    hitDie: 10,
+    skillChoices: 3,
+    skillPool: [
+      "animalHandling",
+      "athletics",
+      "insight",
+      "investigation",
+      "nature",
+      "perception",
+      "stealth",
+      "survival",
+    ],
+  },
 };
 
 export const RACE_RULES: Record<
@@ -336,6 +351,7 @@ export const CLASS_LABELS: Record<ClassId, string> = {
   druid: "druid",
   bard: "bard",
   paladin: "paladin",
+  ranger: "ranger",
 };
 
 export const BACKGROUND_LABELS: Record<BackgroundId, string> = {
@@ -365,20 +381,20 @@ export const SKILL_LABELS: Record<SkillKey, string> = {
   animalHandling: "Animal Handling (Adestrar Animais)",
   arcana: "Arcana",
   athletics: "Athletics (Atletismo)",
-  deception: "Deception (Enganacao)",
-  history: "History (Historia)",
-  insight: "Insight (Intuicao)",
-  intimidation: "Intimidation (Intimidacao)",
-  investigation: "Investigation (Investigacao)",
+  deception: "Deception (Enganação)",
+  history: "History (História)",
+  insight: "Insight (Intuição)",
+  intimidation: "Intimidation (Intimidação)",
+  investigation: "Investigation (Investigação)",
   medicine: "Medicine (Medicina)",
   nature: "Nature (Natureza)",
-  perception: "Perception (Percepcao)",
-  performance: "Performance (Atuacao)",
-  persuasion: "Persuasion (Persuasao)",
-  religion: "Religion (Religiao)",
-  sleightOfHand: "Sleight of Hand (Prestidigitacao)",
+  perception: "Perception (Percepção)",
+  performance: "Performance (Atuação)",
+  persuasion: "Persuasion (Persuasão)",
+  religion: "Religion (Religião)",
+  sleightOfHand: "Sleight of Hand (Prestidigitação)",
   stealth: "Stealth (Furtividade)",
-  survival: "Survival (Sobrevivencia)",
+  survival: "Survival (Sobrevivência)",
 };
 
 export const SKILL_ABILITY_MAP: Record<SkillKey, AbilityKey> = {
@@ -403,23 +419,23 @@ export const SKILL_ABILITY_MAP: Record<SkillKey, AbilityKey> = {
 };
 
 export const SKILL_DESCRIPTIONS: Record<SkillKey, string> = {
-  athletics: "Escalar, nadar, arremessar e usar forca bruta.",
-  acrobatics: "Equilibrio, saltos e controle corporal.",
+  athletics: "Escalar, nadar, arremessar e usar força bruta.",
+  acrobatics: "Equilíbrio, saltos e controle corporal.",
   sleightOfHand: "Furtar, esconder objetos e truques manuais.",
   stealth: "Se esconder e se mover sem ser visto.",
-  arcana: "Conhecimento sobre magia e fenomenos arcanos.",
-  history: "Eventos, civilizacoes e fatos historicos.",
-  investigation: "Deduzir pistas e resolver misterios.",
+  arcana: "Conhecimento sobre magia e fenômenos arcanos.",
+  history: "Eventos, civilizações e fatos históricos.",
+  investigation: "Deduzir pistas e resolver mistérios.",
   nature: "Mundo natural, plantas, animais e terrenos.",
   religion: "Deuses, cultos, ritos e mitologia.",
   animalHandling: "Lidar, acalmar e conduzir animais.",
-  insight: "Perceber intencoes e mentiras.",
-  medicine: "Primeiros socorros e cuidados basicos.",
+  insight: "Perceber intenções e mentiras.",
+  medicine: "Primeiros socorros e cuidados básicos.",
   perception: "Notar detalhes, ameaças e coisas ocultas.",
   survival: "Rastrear, orientar-se e viver na natureza.",
   deception: "Mentir, blefar e enganar.",
-  intimidation: "Ameacar e impor respeito.",
-  performance: "Apresentacoes artisticas e encenacao.",
+  intimidation: "Ameaçar e impor respeito.",
+  performance: "Apresentações artísticas e encenação.",
   persuasion: "Convencer e negociar com diplomacia.",
 };
 
@@ -433,6 +449,7 @@ export const EQUIPMENT_LABELS: Record<string, string> = {
   "weapon-rapier": "Rapier",
   "weapon-warhammer": "Warhammer",
   "weapon-light-crossbow": "Light Crossbow",
+  "weapon-longbow": "Longbow",
   "armor-leather": "Leather Armor",
   "armor-chain-mail": "Chain Mail",
   "armor-scale-mail": "Scale Mail",
@@ -458,6 +475,7 @@ export const EQUIPMENT_DAMAGE: Record<string, string> = {
   "weapon-rapier": "1d8 perfurante",
   "weapon-warhammer": "1d8 contundente",
   "weapon-light-crossbow": "1d8 perfurante",
+  "weapon-longbow": "1d8 perfurante",
 };
 
 export const CLASS_STARTER_EQUIPMENT: Record<ClassId, string[]> = {
@@ -477,6 +495,7 @@ export const CLASS_STARTER_EQUIPMENT: Record<ClassId, string[]> = {
   druid: ["weapon-scimitar", "armor-leather", "armor-shield", "focus-druidic", "pack-explorer"],
   bard: ["weapon-rapier", "armor-leather", "instrument-lute", "pack-explorer", "weapon-dagger"],
   paladin: ["weapon-longsword", "armor-chain-mail", "armor-shield", "focus-holy-symbol", "pack-explorer"],
+  ranger: ["weapon-longbow", "weapon-scimitar", "armor-scale-mail", "pack-explorer"],
 };
 
 export type SpellId =
@@ -493,7 +512,8 @@ export type SpellId =
   | "witchBolt"
   | "faerieFire"
   | "entangle"
-  | "thunderousSmite";
+  | "thunderousSmite"
+  | "huntersMark";
 
 export const SPELL_LABELS: Record<SpellId, string> = {
   magicMissile: "Magic Missile",
@@ -510,23 +530,25 @@ export const SPELL_LABELS: Record<SpellId, string> = {
   faerieFire: "Faerie Fire",
   entangle: "Entangle",
   thunderousSmite: "Thunderous Smite",
+  huntersMark: "Hunter's Mark",
 };
 
 export const SPELL_DESCRIPTIONS: Record<SpellId, string> = {
   magicMissile: "Dardos arcanos que acertam automaticamente.",
-  burningHands: "Cone de fogo em curta distancia.",
-  shield: "Reacao defensiva que aumenta sua CA temporariamente.",
-  healingWord: "Cura rapida a distancia com palavra divina.",
+  burningHands: "Cone de fogo em curta distância.",
+  shield: "Reação defensiva que aumenta sua CA temporariamente.",
+  healingWord: "Cura rápida a distância com palavra divina.",
   cureWounds: "Cura por toque para um aliado.",
   guidingBolt: "Raio radiante que marca o alvo.",
-  charmPerson: "Encanta um humanoide e melhora interacoes sociais.",
-  dissonantWhispers: "Sussurros mentais que causam dano psiquico.",
+  charmPerson: "Encanta um humanoide e melhora interações sociais.",
+  dissonantWhispers: "Sussurros mentais que causam dano psíquico.",
   thunderwave: "Onda trovejante que empurra inimigos.",
-  hex: "Maldicao que aumenta seu dano contra o alvo.",
-  witchBolt: "Raio eletrico sustentado em um alvo.",
-  faerieFire: "Luz feerica que revela alvos e concede vantagem.",
-  entangle: "Vinhas prendem criaturas em uma area.",
+  hex: "Maldição que aumenta seu dano contra o alvo.",
+  witchBolt: "Raio elétrico sustentado em um alvo.",
+  faerieFire: "Luz feérica que revela alvos e concede vantagem.",
+  entangle: "Vinhas prendem criaturas em uma área.",
   thunderousSmite: "Golpe energizado com trovão para paladinos.",
+  huntersMark: "Marca uma presa para rastreamento e causa dano extra nos acertos.",
 };
 
 export const SPELL_DAMAGE: Partial<Record<SpellId, string>> = {
@@ -538,6 +560,7 @@ export const SPELL_DAMAGE: Partial<Record<SpellId, string>> = {
   hex: "+1d6 nos acertos",
   witchBolt: "1d12 raio",
   thunderousSmite: "2d6 trovão",
+  huntersMark: "+1d6 nos acertos",
 };
 
 export const SPELL_HEALING: Partial<Record<SpellId, string>> = {
@@ -565,6 +588,7 @@ export const SPELL_LEVELS: Record<SpellId, 1> = {
   faerieFire: 1,
   entangle: 1,
   thunderousSmite: 1,
+  huntersMark: 1,
 };
 
 export const CLASS_SPELLCASTING: Partial<
@@ -619,6 +643,12 @@ export const CLASS_SPELLCASTING: Partial<
     slotLevel2: 0,
     maxKnownSpells: 0,
     spellOptions: ["thunderousSmite"],
+  },
+  ranger: {
+    slotLevel1: 0,
+    slotLevel2: 0,
+    maxKnownSpells: 0,
+    spellOptions: ["huntersMark", "cureWounds", "entangle"],
   },
 };
 

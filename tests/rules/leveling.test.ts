@@ -79,6 +79,7 @@ describe("leveling", () => {
     expect(getSpellSlotsForLevel("wizard", 10)).toEqual({ slotLevel1: 4, slotLevel2: 3 });
     expect(getSpellSlotsForLevel("fighter", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0 });
     expect(getSpellSlotsForLevel("paladin", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0 });
+    expect(getSpellSlotsForLevel("ranger", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0 });
   });
 
   it("grows known spells for casters and caps at the class spell pool", () => {
@@ -86,5 +87,6 @@ describe("leveling", () => {
     expect(getMaxKnownSpellsForLevel("wizard", 4)).toBe(4);
     expect(getMaxKnownSpellsForLevel("wizard", 20)).toBe(5);
     expect(getMaxKnownSpellsForLevel("fighter", 20)).toBe(0);
+    expect(getMaxKnownSpellsForLevel("ranger", 20)).toBe(0);
   });
 });

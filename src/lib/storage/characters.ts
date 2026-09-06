@@ -41,6 +41,7 @@ function normalizeDraft(input: CharacterDraft): CharacterDraft {
 
   return {
     ...input,
+    bio: input.bio ?? "",
     abilityGenerationMethod: method,
     abilityGeneration: input.abilityGeneration ?? {
       method,
@@ -58,6 +59,7 @@ function normalizeCharacter(input: Character): Character {
 
   return {
     ...input,
+    bio: input.bio ?? "",
     knownSpellIds: input.knownSpellIds ?? [],
     spellSlotsLevel1,
     spellSlotsLevel2,
@@ -120,4 +122,54 @@ export function deleteCharacter(id: string): void {
 
 export function exportCharacterJson(character: Character): string {
   return JSON.stringify(character, null, 2);
+}
+
+export function downloadCharacterFile(character: Character): void {
+  if (typeof window === "undefined") return;
+  const jsonString = JSON.stringify(character, null, 2);
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+
+  // Normaliza o nome para o arquivo de download
+  const cleanName = character.name
+    ? character.name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/[^a-z0-9]/g, "-")
+        .replace(/-+/g, "-")
+    : "personagem";
+
+  link.download = `trollsheet-${cleanName}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export function importCharacter(jsonString: string): Character | null {
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    // Validação básica estrutural para garantir tipo mínimo compatível
+    if (typeof parsed.id !== "string" || !parsed.id) return null;
+    if (typeof parsed.name !== "string") return null;
+    if (typeof parsed.level !== "number") return null;
+    if (!parsed.abilities || typeof parsed.abilities !== "object") return null;
+
+    const abilityKeys = ["str", "dex", "con", "int", "wis", "cha"] as const;
+    for (const key of abilityKeys) {
+      if (typeof parsed.abilities[key] !== "number") return null;
+    }
+
+    const character = normalizeCharacter(parsed as Character);
+    saveCharacter(character);
+    return character;
+  } catch {
+    return null;
+  }
 }

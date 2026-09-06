@@ -1,0 +1,133 @@
+{
+  "id": "8c7022e2-ee4e-4563-a89e-d9b5f3d0ac97",
+  "step": 7,
+  "updatedAt": "2026-08-30T13:56:27.954Z",
+  "name": "Haaland",
+  "raceId": "elf",
+  "classId": "warlock",
+  "backgroundId": "folkHero",
+  "abilityGenerationMethod": "roll-4d6",
+  "abilityGeneration": {
+    "method": "roll-4d6",
+    "rolledValues": [
+      14,
+      12,
+      9,
+      12,
+      10,
+      16
+    ],
+    "rolledDetail": [
+      {
+        "dice": [
+          6,
+          2,
+          2,
+          6
+        ],
+        "dropped": 2
+      },
+      {
+        "dice": [
+          4,
+          1,
+          4,
+          4
+        ],
+        "dropped": 1
+      },
+      {
+        "dice": [
+          3,
+          1,
+          5,
+          1
+        ],
+        "dropped": 1
+      },
+      {
+        "dice": [
+          5,
+          2,
+          3,
+          4
+        ],
+        "dropped": 2
+      },
+      {
+        "dice": [
+          1,
+          3,
+          4,
+          3
+        ],
+        "dropped": 1
+      },
+      {
+        "dice": [
+          5,
+          5,
+          6,
+          3
+        ],
+        "dropped": 3
+      }
+    ],
+    "assignment": {
+      "str": 12,
+      "dex": 12,
+      "con": 14,
+      "int": 9,
+      "wis": 10,
+      "cha": 16
+    }
+  },
+  "abilities": {
+    "str": 12,
+    "dex": 16,
+    "con": 14,
+    "int": 9,
+    "wis": 10,
+    "cha": 18
+  },
+  "skillProficiencies": [
+    "investigation",
+    "deception",
+    "animalHandling",
+    "survival"
+  ],
+  "equipmentIds": [
+    "weapon-quarterstaff",
+    "armor-leather",
+    "focus-arcane",
+    "pack-scholar"
+  ],
+  "knownSpellIds": [
+    "charmPerson",
+    "burningHands",
+    "hex",
+    "witchBolt"
+  ],
+  "spellSlotsLevel4": 2,
+  "currentSpellSlotsLevel4": 2,
+  "createdAt": "2026-08-30T14:05:17.116Z",
+  "level": 8,
+  "proficiencyBonus": 3,
+  "maxHp": 60,
+  "currentHp": 60,
+  "ac": 14,
+  "speed": 30,
+  "subclassId": "theGreatOldOne",
+  "pactBoon": "pactOfTheTome",
+  "invocations": [
+    "bookOfAncientSecrets",
+    "armorOfShadows",
+    "mireTheMind",
+    "sculptorOfFlesh"
+  ],
+  "classFeatures": [
+    "awakenedMind",
+    "entropicWard",
+    "pactOfTheTome"
+  ]
+}

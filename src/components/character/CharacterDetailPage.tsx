@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 import {
@@ -20,6 +21,7 @@ import {
   type RaceId,
   type SpellId,
 } from "@/lib/rules/creation-data";
+import { downloadCharacterPdf } from "@/lib/export/character-pdf";
 import { getCharacterById, saveCharacter, downloadCharacterFile } from "@/lib/storage/characters";
 import { calculateArmorClass, calculateModifier, formatModifier } from "@/lib/rules/calculate";
 import {
@@ -33,6 +35,7 @@ import {
   getSpellcastingAbility,
   type DiceRollResult,
 } from "@/lib/rules/checks";
+import { prepareAvatarDataUrl } from "@/lib/avatar";
 import { getWarlockFeatureNames, LEVEL_CAP } from "@/lib/rules/leveling";
 import { LevelUpFlow } from "@/components/level-up/LevelUpFlow";
 import type { AbilityKey, Character } from "@/lib/types/character";
@@ -64,6 +67,7 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
   // States for bio editing
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioText, setBioText] = useState("");
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   if (!character) {
     return (
@@ -106,6 +110,27 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
     saveCharacter(updated);
     setCharacter(updated);
     setIsEditingBio(false);
+  }
+
+  async function handleAvatarUpload(file: File) {
+    if (!character) return;
+    try {
+      const avatarDataUrl = await prepareAvatarDataUrl(file);
+      const updated = { ...character, avatarDataUrl };
+      saveCharacter(updated);
+      setCharacter(updated);
+      setAvatarError(null);
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : "Nao foi possivel salvar o avatar.");
+    }
+  }
+
+  function removeAvatar() {
+    if (!character) return;
+    const updated = { ...character, avatarDataUrl: undefined };
+    saveCharacter(updated);
+    setCharacter(updated);
+    setAvatarError(null);
   }
 
   function adjustCurrentHp(delta: number) {
@@ -307,19 +332,58 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
       </Link>
 
       <header className="mb-6 rounded-xl border border-zinc-300 bg-white p-4">
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {character.name || "Sem nome"}
-        </h1>
-        <p className="mt-2 text-sm capitalize text-zinc-600">
-          {character.raceId ? RACE_LABELS[character.raceId as RaceId] : "—"} · {" "}
-          {character.classId ? CLASS_LABELS[character.classId as ClassId] : "—"} · {" "}
-          nv {character.level}
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">
-          {character.backgroundId
-            ? BACKGROUND_LABELS[character.backgroundId as BackgroundId]
-            : "Sem background"}
-        </p>
+        <div className="flex items-start gap-3">
+          {character.avatarDataUrl ? (
+            <Image
+              src={character.avatarDataUrl}
+              alt={`Avatar de ${character.name || "personagem"}`}
+              width={64}
+              height={64}
+              unoptimized
+              className="h-16 w-16 shrink-0 rounded-md border border-zinc-300 object-cover"
+            />
+          ) : null}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold text-zinc-900">
+              {character.name || "Sem nome"}
+            </h1>
+            <p className="mt-2 text-sm capitalize text-zinc-600">
+              {character.raceId ? RACE_LABELS[character.raceId as RaceId] : "—"} · {" "}
+              {character.classId ? CLASS_LABELS[character.classId as ClassId] : "—"} · {" "}
+              nv {character.level}
+            </p>
+            <p className="mt-1 text-sm text-zinc-500">
+              {character.backgroundId
+                ? BACKGROUND_LABELS[character.backgroundId as BackgroundId]
+                : "Sem background"}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <label className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+            {character.avatarDataUrl ? "Trocar avatar" : "Adicionar avatar"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void handleAvatarUpload(file);
+                event.target.value = "";
+              }}
+            />
+          </label>
+          {character.avatarDataUrl ? (
+            <button
+              type="button"
+              onClick={removeAvatar}
+              className="text-sm text-zinc-600 hover:text-zinc-900"
+            >
+              Remover
+            </button>
+          ) : null}
+        </div>
+        {avatarError ? <p className="mt-2 text-sm text-red-700">{avatarError}</p> : null}
         <div className="mt-3 flex gap-2">
           <button
             type="button"
@@ -334,7 +398,14 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             onClick={() => downloadCharacterFile(character)}
             className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
           >
-            Exportar
+            JSON
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadCharacterPdf(character)}
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            PDF
           </button>
         </div>
       </header>

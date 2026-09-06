@@ -46,6 +46,7 @@ export type CharacterDraft = {
 
   name: string;
   bio?: string;
+  avatarDataUrl?: string;
 
   raceId: string | null;
   classId: string | null;

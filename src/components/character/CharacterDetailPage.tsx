@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 import {
@@ -20,6 +21,7 @@ import {
   type RaceId,
   type SpellId,
 } from "@/lib/rules/creation-data";
+import { downloadCharacterPdf } from "@/lib/export/character-pdf";
 import { getCharacterById, saveCharacter, downloadCharacterFile } from "@/lib/storage/characters";
 import { calculateArmorClass, calculateModifier, formatModifier } from "@/lib/rules/calculate";
 import {
@@ -33,7 +35,8 @@ import {
   getSpellcastingAbility,
   type DiceRollResult,
 } from "@/lib/rules/checks";
-import { LEVEL_CAP } from "@/lib/rules/leveling";
+import { prepareAvatarDataUrl } from "@/lib/avatar";
+import { getWarlockFeatureNames, LEVEL_CAP } from "@/lib/rules/leveling";
 import { LevelUpFlow } from "@/components/level-up/LevelUpFlow";
 import type { AbilityKey, Character } from "@/lib/types/character";
 
@@ -64,6 +67,7 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
   // States for bio editing
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioText, setBioText] = useState("");
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   if (!character) {
     return (
@@ -108,6 +112,27 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
     setIsEditingBio(false);
   }
 
+  async function handleAvatarUpload(file: File) {
+    if (!character) return;
+    try {
+      const avatarDataUrl = await prepareAvatarDataUrl(file);
+      const updated = { ...character, avatarDataUrl };
+      saveCharacter(updated);
+      setCharacter(updated);
+      setAvatarError(null);
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : "Nao foi possivel salvar o avatar.");
+    }
+  }
+
+  function removeAvatar() {
+    if (!character) return;
+    const updated = { ...character, avatarDataUrl: undefined };
+    saveCharacter(updated);
+    setCharacter(updated);
+    setAvatarError(null);
+  }
+
   function adjustCurrentHp(delta: number) {
     if (!character) return;
     const nextHp = Math.min(character.maxHp, Math.max(0, character.currentHp + delta));
@@ -116,12 +141,38 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
     setCharacter(updated);
   }
 
-  function adjustSpellSlot(level: 1 | 2, delta: number) {
+  function adjustSpellSlot(level: 1 | 2 | 4, delta: number) {
     if (!character) return;
-    const key = level === 1 ? "currentSpellSlotsLevel1" : "currentSpellSlotsLevel2";
-    const max = level === 1 ? character.spellSlotsLevel1 : character.spellSlotsLevel2;
-    const nextValue = Math.min(max, Math.max(0, character[key] + delta));
-    const updated = { ...character, [key]: nextValue };
+    const max = level === 1
+      ? character.spellSlotsLevel1
+      : level === 2
+        ? character.spellSlotsLevel2
+        : character.spellSlotsLevel4 ?? 0;
+    const current = level === 1
+      ? character.currentSpellSlotsLevel1
+      : level === 2
+        ? character.currentSpellSlotsLevel2
+        : character.currentSpellSlotsLevel4 ?? 0;
+    const nextValue = Math.min(max, Math.max(0, current + delta));
+    const updated = level === 1
+      ? { ...character, currentSpellSlotsLevel1: nextValue }
+      : level === 2
+        ? { ...character, currentSpellSlotsLevel2: nextValue }
+        : { ...character, currentSpellSlotsLevel4: nextValue };
+    saveCharacter(updated);
+    setCharacter(updated);
+  }
+
+  function adjustPactMagicSlot(delta: number) {
+    if (!character?.pactMagic) return;
+    const currentSlots = Math.min(
+      character.pactMagic.maxSlots,
+      Math.max(0, character.pactMagic.currentSlots + delta),
+    );
+    const updated = {
+      ...character,
+      pactMagic: { ...character.pactMagic, currentSlots },
+    };
     saveCharacter(updated);
     setCharacter(updated);
   }
@@ -281,19 +332,58 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
       </Link>
 
       <header className="mb-6 rounded-xl border border-zinc-300 bg-white p-4">
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {character.name || "Sem nome"}
-        </h1>
-        <p className="mt-2 text-sm capitalize text-zinc-600">
-          {character.raceId ? RACE_LABELS[character.raceId as RaceId] : "—"} · {" "}
-          {character.classId ? CLASS_LABELS[character.classId as ClassId] : "—"} · {" "}
-          nv {character.level}
-        </p>
-        <p className="mt-1 text-sm text-zinc-500">
-          {character.backgroundId
-            ? BACKGROUND_LABELS[character.backgroundId as BackgroundId]
-            : "Sem background"}
-        </p>
+        <div className="flex items-start gap-3">
+          {character.avatarDataUrl ? (
+            <Image
+              src={character.avatarDataUrl}
+              alt={`Avatar de ${character.name || "personagem"}`}
+              width={64}
+              height={64}
+              unoptimized
+              className="h-16 w-16 shrink-0 rounded-md border border-zinc-300 object-cover"
+            />
+          ) : null}
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold text-zinc-900">
+              {character.name || "Sem nome"}
+            </h1>
+            <p className="mt-2 text-sm capitalize text-zinc-600">
+              {character.raceId ? RACE_LABELS[character.raceId as RaceId] : "—"} · {" "}
+              {character.classId ? CLASS_LABELS[character.classId as ClassId] : "—"} · {" "}
+              nv {character.level}
+            </p>
+            <p className="mt-1 text-sm text-zinc-500">
+              {character.backgroundId
+                ? BACKGROUND_LABELS[character.backgroundId as BackgroundId]
+                : "Sem background"}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <label className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+            {character.avatarDataUrl ? "Trocar avatar" : "Adicionar avatar"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void handleAvatarUpload(file);
+                event.target.value = "";
+              }}
+            />
+          </label>
+          {character.avatarDataUrl ? (
+            <button
+              type="button"
+              onClick={removeAvatar}
+              className="text-sm text-zinc-600 hover:text-zinc-900"
+            >
+              Remover
+            </button>
+          ) : null}
+        </div>
+        {avatarError ? <p className="mt-2 text-sm text-red-700">{avatarError}</p> : null}
         <div className="mt-3 flex gap-2">
           <button
             type="button"
@@ -308,7 +398,14 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
             onClick={() => downloadCharacterFile(character)}
             className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
           >
-            Exportar
+            JSON
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadCharacterPdf(character)}
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            PDF
           </button>
         </div>
       </header>
@@ -470,14 +567,24 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
           </ul>
         )}
         <div className="mt-2 flex flex-col gap-2">
-          <SpellSlotControl
-            label="Slots nv1"
-            current={character.currentSpellSlotsLevel1}
-            max={character.spellSlotsLevel1}
-            onDecrease={() => adjustSpellSlot(1, -1)}
-            onIncrease={() => adjustSpellSlot(1, 1)}
-          />
-          {character.spellSlotsLevel2 > 0 ? (
+          {character.pactMagic ? (
+            <SpellSlotControl
+              label={`Magia do Pacto nv${character.pactMagic.slotLevel}`}
+              current={character.pactMagic.currentSlots}
+              max={character.pactMagic.maxSlots}
+              onDecrease={() => adjustPactMagicSlot(-1)}
+              onIncrease={() => adjustPactMagicSlot(1)}
+            />
+          ) : (
+            <SpellSlotControl
+              label="Slots nv1"
+              current={character.currentSpellSlotsLevel1}
+              max={character.spellSlotsLevel1}
+              onDecrease={() => adjustSpellSlot(1, -1)}
+              onIncrease={() => adjustSpellSlot(1, 1)}
+            />
+          )}
+          {!character.pactMagic && character.spellSlotsLevel2 > 0 ? (
             <SpellSlotControl
               label="Slots nv2"
               current={character.currentSpellSlotsLevel2}
@@ -486,8 +593,32 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
               onIncrease={() => adjustSpellSlot(2, 1)}
             />
           ) : null}
+          {!character.pactMagic && (character.spellSlotsLevel4 ?? 0) > 0 ? (
+            <SpellSlotControl
+              label="Slots nv4"
+              current={character.currentSpellSlotsLevel4 ?? 0}
+              max={character.spellSlotsLevel4 ?? 0}
+              onDecrease={() => adjustSpellSlot(4, -1)}
+              onIncrease={() => adjustSpellSlot(4, 1)}
+            />
+          ) : null}
         </div>
       </Section>
+
+      {character.classId === "warlock" ? (
+        <Section title="Recursos de Bruxo">
+          <div className="flex flex-col gap-2 text-sm text-zinc-700">
+            {character.subclassId ? <p>Patrono: {character.subclassId}</p> : null}
+            {character.pactBoon ? <p>Dádiva do Pacto: {character.pactBoon}</p> : null}
+            {getWarlockFeatureNames(character.subclassId, character.level).length > 0 ? (
+              <p>Habilidades: {getWarlockFeatureNames(character.subclassId, character.level).join(", ")}</p>
+            ) : null}
+            {character.invocations?.length ? (
+              <p>Invocações: {character.invocations.join(", ")}</p>
+            ) : null}
+          </div>
+        </Section>
+      ) : null}
 
       <Section title="Combate">
         <div className="grid grid-cols-2 gap-2 text-sm mb-4">

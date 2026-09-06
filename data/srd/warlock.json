@@ -1,0 +1,54 @@
+{
+  "classId": "warlock",
+  "pactMagic": [
+    { "minLevel": 1, "maxLevel": 1, "slotLevel": 1, "slotCount": 1 },
+    { "minLevel": 2, "maxLevel": 2, "slotLevel": 1, "slotCount": 2 },
+    { "minLevel": 3, "maxLevel": 4, "slotLevel": 2, "slotCount": 2 },
+    { "minLevel": 5, "maxLevel": 6, "slotLevel": 3, "slotCount": 2 },
+    { "minLevel": 7, "maxLevel": 8, "slotLevel": 4, "slotCount": 2 },
+    { "minLevel": 9, "maxLevel": 10, "slotLevel": 5, "slotCount": 2 },
+    { "minLevel": 11, "maxLevel": 16, "slotLevel": 5, "slotCount": 3 },
+    { "minLevel": 17, "maxLevel": 20, "slotLevel": 5, "slotCount": 4 }
+  ],
+  "pactBoons": [
+    { "id": "pactOfTheChain", "name": "Pacto da Corrente", "minimumLevel": 3 },
+    { "id": "pactOfTheBlade", "name": "Pacto da Lâmina", "minimumLevel": 3 },
+    { "id": "pactOfTheTome", "name": "Pacto do Tomo", "minimumLevel": 3 }
+  ],
+  "invocations": [
+    {
+      "id": "armorOfShadows",
+      "name": "Armadura das Sombras",
+      "minimumLevel": 2,
+      "description": "Você pode lançar Armadura Arcana em si mesmo à vontade."
+    },
+    {
+      "id": "bookOfAncientSecrets",
+      "name": "Livro dos Segredos Antigos",
+      "minimumLevel": 3,
+      "requiresPactBoon": "pactOfTheTome",
+      "description": "Você pode registrar rituais no seu Livro das Sombras."
+    },
+    {
+      "id": "mireTheMind",
+      "name": "Atolar a Mente",
+      "minimumLevel": 5,
+      "description": "Você pode lançar Lentidão uma vez usando um espaço de magia de Bruxo."
+    },
+    {
+      "id": "sculptorOfFlesh",
+      "name": "Escultor de Carne",
+      "minimumLevel": 7,
+      "description": "Você pode lançar Metamorfose uma vez usando um espaço de magia de Bruxo."
+    }
+  ],
+  "invocationSlots": [
+    { "minLevel": 2, "maxLevel": 4, "count": 2 },
+    { "minLevel": 5, "maxLevel": 6, "count": 3 },
+    { "minLevel": 7, "maxLevel": 8, "count": 4 },
+    { "minLevel": 9, "maxLevel": 11, "count": 5 },
+    { "minLevel": 12, "maxLevel": 14, "count": 6 },
+    { "minLevel": 15, "maxLevel": 17, "count": 7 },
+    { "minLevel": 18, "maxLevel": 20, "count": 8 }
+  ]
+}

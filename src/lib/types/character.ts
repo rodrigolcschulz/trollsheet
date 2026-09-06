@@ -33,6 +33,12 @@ export type AbilityGeneration = {
   assignment: Abilities;
 };
 
+export type PactMagic = {
+  slotLevel: 1 | 2 | 3 | 4 | 5;
+  maxSlots: number;
+  currentSlots: number;
+};
+
 export type CharacterDraft = {
   id: string;
   step: number;
@@ -40,6 +46,7 @@ export type CharacterDraft = {
 
   name: string;
   bio?: string;
+  avatarDataUrl?: string;
 
   raceId: string | null;
   classId: string | null;
@@ -68,6 +75,13 @@ export type Character = CharacterDraft & {
   speed: number;
   currentSpellSlotsLevel1: number;
   currentSpellSlotsLevel2: number;
+  spellSlotsLevel4?: number;
+  currentSpellSlotsLevel4?: number;
+  pactMagic?: PactMagic;
+  subclassId?: string;
+  pactBoon?: string;
+  invocations?: string[];
+  classFeatures?: string[];
 };
 
 export const DEFAULT_ABILITIES: Abilities = {

@@ -1,4 +1,7 @@
-import type { Abilities, AbilityKey } from "@/lib/types/character";
+import warlockRules from "../../../data/srd/warlock.json";
+import subclasses from "../../../data/srd/subclasses.json";
+
+import type { Abilities, AbilityKey, PactMagic } from "@/lib/types/character";
 import { CLASS_SPELLCASTING, type ClassId } from "@/lib/rules/creation-data";
 
 export const LEVEL_CAP = 20;
@@ -69,7 +72,44 @@ export function applyAsiChoice(abilities: Abilities, choice: AsiChoice): Abiliti
 export type SpellSlots = {
   slotLevel1: number;
   slotLevel2: number;
+  slotLevel4: number;
 };
+
+export function getPactMagicForLevel(level: number): PactMagic {
+  const progression = warlockRules.pactMagic.find(
+    (entry) => level >= entry.minLevel && level <= entry.maxLevel,
+  );
+
+  if (!progression) {
+    throw new RangeError("O nível de Bruxo deve estar entre 1 e 20.");
+  }
+
+  return {
+    slotLevel: progression.slotLevel as PactMagic["slotLevel"],
+    maxSlots: progression.slotCount,
+    currentSlots: progression.slotCount,
+  };
+}
+
+export function getWarlockFeatures(subclassId: string | undefined, level: number): string[] {
+  const subclass = subclasses.find((entry) => entry.id === subclassId && entry.classId === "warlock");
+  return subclass
+    ? subclass.features.filter((feature) => feature.level <= level).map((feature) => feature.id)
+    : [];
+}
+
+export function getWarlockFeatureNames(subclassId: string | undefined, level: number): string[] {
+  const subclass = subclasses.find((entry) => entry.id === subclassId && entry.classId === "warlock");
+  return subclass
+    ? subclass.features.filter((feature) => feature.level <= level).map((feature) => feature.name)
+    : [];
+}
+
+export function getWarlockInvocationLimit(level: number): number {
+  return warlockRules.invocationSlots.find(
+    (entry) => level >= entry.minLevel && level <= entry.maxLevel,
+  )?.count ?? 0;
+}
 
 /**
  * Progressão homebrew: slots crescem até estabilizar por volta do nível 3-4.
@@ -78,13 +118,13 @@ export type SpellSlots = {
 export function getSpellSlotsForLevel(classId: ClassId, level: number): SpellSlots {
   const baseline = CLASS_SPELLCASTING[classId]?.slotLevel1 ?? 0;
   if (baseline === 0) {
-    return { slotLevel1: 0, slotLevel2: 0 };
+    return { slotLevel1: 0, slotLevel2: 0, slotLevel4: 0 };
   }
 
   const slotLevel1 = level >= 3 ? baseline + 2 : level === 2 ? baseline + 1 : baseline;
   const slotLevel2 = level >= 4 ? 3 : level === 3 ? 2 : 0;
 
-  return { slotLevel1, slotLevel2 };
+  return { slotLevel1, slotLevel2, slotLevel4: 0 };
 }
 
 /**

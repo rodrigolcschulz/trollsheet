@@ -4,6 +4,10 @@ import {
   ASI_LEVELS,
   applyAsiChoice,
   calculateHpGain,
+  getPactMagicForLevel,
+  getWarlockFeatures,
+  getWarlockFeatureNames,
+  getWarlockInvocationLimit,
   getMaxKnownSpellsForLevel,
   getSpellSlotsForLevel,
   isAsiLevel,
@@ -73,13 +77,29 @@ describe("leveling", () => {
   });
 
   it("grows spell slots for casters and keeps non-casters at zero", () => {
-    expect(getSpellSlotsForLevel("wizard", 1)).toEqual({ slotLevel1: 2, slotLevel2: 0 });
-    expect(getSpellSlotsForLevel("wizard", 2)).toEqual({ slotLevel1: 3, slotLevel2: 0 });
-    expect(getSpellSlotsForLevel("wizard", 3)).toEqual({ slotLevel1: 4, slotLevel2: 2 });
-    expect(getSpellSlotsForLevel("wizard", 10)).toEqual({ slotLevel1: 4, slotLevel2: 3 });
-    expect(getSpellSlotsForLevel("fighter", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0 });
-    expect(getSpellSlotsForLevel("paladin", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0 });
-    expect(getSpellSlotsForLevel("ranger", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0 });
+    expect(getSpellSlotsForLevel("wizard", 1)).toEqual({ slotLevel1: 2, slotLevel2: 0, slotLevel4: 0 });
+    expect(getSpellSlotsForLevel("wizard", 2)).toEqual({ slotLevel1: 3, slotLevel2: 0, slotLevel4: 0 });
+    expect(getSpellSlotsForLevel("wizard", 3)).toEqual({ slotLevel1: 4, slotLevel2: 2, slotLevel4: 0 });
+    expect(getSpellSlotsForLevel("wizard", 10)).toEqual({ slotLevel1: 4, slotLevel2: 3, slotLevel4: 0 });
+    expect(getSpellSlotsForLevel("fighter", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0, slotLevel4: 0 });
+    expect(getSpellSlotsForLevel("paladin", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0, slotLevel4: 0 });
+    expect(getSpellSlotsForLevel("ranger", 10)).toEqual({ slotLevel1: 0, slotLevel2: 0, slotLevel4: 0 });
+    expect(getSpellSlotsForLevel("warlock", 8)).toEqual({ slotLevel1: 3, slotLevel2: 3, slotLevel4: 0 });
+  });
+
+  it("uses Pact Magic progression for Warlocks", () => {
+    expect(getPactMagicForLevel(1)).toEqual({ slotLevel: 1, maxSlots: 1, currentSlots: 1 });
+    expect(getPactMagicForLevel(5)).toEqual({ slotLevel: 3, maxSlots: 2, currentSlots: 2 });
+    expect(getPactMagicForLevel(8)).toEqual({ slotLevel: 4, maxSlots: 2, currentSlots: 2 });
+    expect(getPactMagicForLevel(17)).toEqual({ slotLevel: 5, maxSlots: 4, currentSlots: 4 });
+  });
+
+  it("derives Patron features and invocation limits from Warlock rules", () => {
+    expect(getWarlockFeatures("theGreatOldOne", 1)).toEqual(["awakenedMind"]);
+    expect(getWarlockFeatures("theGreatOldOne", 8)).toEqual(["awakenedMind", "entropicWard"]);
+    expect(getWarlockFeatureNames("theGreatOldOne", 8)).toEqual(["Mente Despertada", "Escudo Entrópico"]);
+    expect(getWarlockInvocationLimit(1)).toBe(0);
+    expect(getWarlockInvocationLimit(8)).toBe(4);
   });
 
   it("grows known spells for casters and caps at the class spell pool", () => {

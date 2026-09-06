@@ -56,6 +56,11 @@ function normalizeDraft(input: CharacterDraft): CharacterDraft {
 function normalizeCharacter(input: Character): Character {
   const spellSlotsLevel1 = input.spellSlotsLevel1 ?? 0;
   const spellSlotsLevel2 = input.spellSlotsLevel2 ?? 0;
+  const spellSlotsLevel4 = input.spellSlotsLevel4 ?? 0;
+  const currentSpellSlotsLevel4 = input.currentSpellSlotsLevel4 ?? spellSlotsLevel4;
+  const pactMagic = input.pactMagic ?? (input.classId === "warlock" && spellSlotsLevel4 > 0
+    ? { slotLevel: 4 as const, maxSlots: spellSlotsLevel4, currentSlots: currentSpellSlotsLevel4 }
+    : undefined);
 
   return {
     ...input,
@@ -65,6 +70,11 @@ function normalizeCharacter(input: Character): Character {
     spellSlotsLevel2,
     currentSpellSlotsLevel1: input.currentSpellSlotsLevel1 ?? spellSlotsLevel1,
     currentSpellSlotsLevel2: input.currentSpellSlotsLevel2 ?? spellSlotsLevel2,
+    spellSlotsLevel4,
+    currentSpellSlotsLevel4,
+    pactMagic,
+    invocations: input.invocations ?? [],
+    classFeatures: input.classFeatures ?? [],
   };
 }
 

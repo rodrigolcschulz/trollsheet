@@ -97,7 +97,7 @@
     "survival"
   ],
   "equipmentIds": [
-    "weapon-light-crossbow",
+    "weapon-quarterstaff",
     "armor-leather",
     "focus-arcane",
     "pack-scholar"
@@ -108,15 +108,26 @@
     "hex",
     "witchBolt"
   ],
-  "spellSlotsLevel1": 3,
-  "spellSlotsLevel2": 3,
+  "spellSlotsLevel4": 2,
   "createdAt": "2026-08-30T14:05:17.116Z",
   "level": 8,
   "proficiencyBonus": 3,
   "maxHp": 60,
   "currentHp": 60,
-  "ac": 12,
+  "ac": 14,
   "speed": 30,
-  "currentSpellSlotsLevel1": 3,
-  "currentSpellSlotsLevel2": 3
+  "currentSpellSlotsLevel4": 2,
+  "subclassId": "theGreatOldOne",
+  "pactBoon": "pactOfTheTome",
+  "invocations": [
+    "bookOfAncientSecrets",
+    "armorOfShadows",
+    "mireTheMind",
+    "sculptorOfFlesh"
+  ],
+  "classFeatures": [
+    "awakenedMind",
+    "entropicWard",
+    "pactOfTheTome"
+  ]
 }

@@ -33,7 +33,7 @@ import {
   getSpellcastingAbility,
   type DiceRollResult,
 } from "@/lib/rules/checks";
-import { LEVEL_CAP } from "@/lib/rules/leveling";
+import { getWarlockFeatureNames, LEVEL_CAP } from "@/lib/rules/leveling";
 import { LevelUpFlow } from "@/components/level-up/LevelUpFlow";
 import type { AbilityKey, Character } from "@/lib/types/character";
 
@@ -116,12 +116,38 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
     setCharacter(updated);
   }
 
-  function adjustSpellSlot(level: 1 | 2, delta: number) {
+  function adjustSpellSlot(level: 1 | 2 | 4, delta: number) {
     if (!character) return;
-    const key = level === 1 ? "currentSpellSlotsLevel1" : "currentSpellSlotsLevel2";
-    const max = level === 1 ? character.spellSlotsLevel1 : character.spellSlotsLevel2;
-    const nextValue = Math.min(max, Math.max(0, character[key] + delta));
-    const updated = { ...character, [key]: nextValue };
+    const max = level === 1
+      ? character.spellSlotsLevel1
+      : level === 2
+        ? character.spellSlotsLevel2
+        : character.spellSlotsLevel4 ?? 0;
+    const current = level === 1
+      ? character.currentSpellSlotsLevel1
+      : level === 2
+        ? character.currentSpellSlotsLevel2
+        : character.currentSpellSlotsLevel4 ?? 0;
+    const nextValue = Math.min(max, Math.max(0, current + delta));
+    const updated = level === 1
+      ? { ...character, currentSpellSlotsLevel1: nextValue }
+      : level === 2
+        ? { ...character, currentSpellSlotsLevel2: nextValue }
+        : { ...character, currentSpellSlotsLevel4: nextValue };
+    saveCharacter(updated);
+    setCharacter(updated);
+  }
+
+  function adjustPactMagicSlot(delta: number) {
+    if (!character?.pactMagic) return;
+    const currentSlots = Math.min(
+      character.pactMagic.maxSlots,
+      Math.max(0, character.pactMagic.currentSlots + delta),
+    );
+    const updated = {
+      ...character,
+      pactMagic: { ...character.pactMagic, currentSlots },
+    };
     saveCharacter(updated);
     setCharacter(updated);
   }
@@ -470,14 +496,24 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
           </ul>
         )}
         <div className="mt-2 flex flex-col gap-2">
-          <SpellSlotControl
-            label="Slots nv1"
-            current={character.currentSpellSlotsLevel1}
-            max={character.spellSlotsLevel1}
-            onDecrease={() => adjustSpellSlot(1, -1)}
-            onIncrease={() => adjustSpellSlot(1, 1)}
-          />
-          {character.spellSlotsLevel2 > 0 ? (
+          {character.pactMagic ? (
+            <SpellSlotControl
+              label={`Magia do Pacto nv${character.pactMagic.slotLevel}`}
+              current={character.pactMagic.currentSlots}
+              max={character.pactMagic.maxSlots}
+              onDecrease={() => adjustPactMagicSlot(-1)}
+              onIncrease={() => adjustPactMagicSlot(1)}
+            />
+          ) : (
+            <SpellSlotControl
+              label="Slots nv1"
+              current={character.currentSpellSlotsLevel1}
+              max={character.spellSlotsLevel1}
+              onDecrease={() => adjustSpellSlot(1, -1)}
+              onIncrease={() => adjustSpellSlot(1, 1)}
+            />
+          )}
+          {!character.pactMagic && character.spellSlotsLevel2 > 0 ? (
             <SpellSlotControl
               label="Slots nv2"
               current={character.currentSpellSlotsLevel2}
@@ -486,8 +522,32 @@ export function CharacterDetailPage({ characterId }: CharacterDetailPageProps) {
               onIncrease={() => adjustSpellSlot(2, 1)}
             />
           ) : null}
+          {!character.pactMagic && (character.spellSlotsLevel4 ?? 0) > 0 ? (
+            <SpellSlotControl
+              label="Slots nv4"
+              current={character.currentSpellSlotsLevel4 ?? 0}
+              max={character.spellSlotsLevel4 ?? 0}
+              onDecrease={() => adjustSpellSlot(4, -1)}
+              onIncrease={() => adjustSpellSlot(4, 1)}
+            />
+          ) : null}
         </div>
       </Section>
+
+      {character.classId === "warlock" ? (
+        <Section title="Recursos de Bruxo">
+          <div className="flex flex-col gap-2 text-sm text-zinc-700">
+            {character.subclassId ? <p>Patrono: {character.subclassId}</p> : null}
+            {character.pactBoon ? <p>Dádiva do Pacto: {character.pactBoon}</p> : null}
+            {getWarlockFeatureNames(character.subclassId, character.level).length > 0 ? (
+              <p>Habilidades: {getWarlockFeatureNames(character.subclassId, character.level).join(", ")}</p>
+            ) : null}
+            {character.invocations?.length ? (
+              <p>Invocações: {character.invocations.join(", ")}</p>
+            ) : null}
+          </div>
+        </Section>
+      ) : null}
 
       <Section title="Combate">
         <div className="grid grid-cols-2 gap-2 text-sm mb-4">

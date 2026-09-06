@@ -1,0 +1,22 @@
+[
+  {
+    "id": "theGreatOldOne",
+    "classId": "warlock",
+    "name": "O Grande Antigo",
+    "description": "Sua entidade pode ser uma força de além do tempo e espaço.",
+    "features": [
+      {
+        "level": 1,
+        "id": "awakenedMind",
+        "name": "Mente Despertada",
+        "description": "Comunicação telepática a até 30 pés."
+      },
+      {
+        "level": 6,
+        "id": "entropicWard",
+        "name": "Escudo Entrópico",
+        "description": "Imponha desvantagem em um ataque contra você usando reação."
+      }
+    ]
+  }
+]

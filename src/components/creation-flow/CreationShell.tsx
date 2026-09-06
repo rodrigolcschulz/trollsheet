@@ -57,6 +57,7 @@ import { calculateArmorClass, calculateProficiencyBonus } from "@/lib/rules/calc
 import {
   getAbilityModifier,
 } from "@/lib/rules/abilities";
+import { getPactMagicForLevel } from "@/lib/rules/leveling";
 
 type CreationShellProps = {
   initialDraft: CharacterDraft;
@@ -180,6 +181,7 @@ export function CreationShell({ initialDraft }: CreationShellProps) {
             : 30,
         currentSpellSlotsLevel1: draft.spellSlotsLevel1,
         currentSpellSlotsLevel2: draft.spellSlotsLevel2,
+        pactMagic: draft.classId === "warlock" ? getPactMagicForLevel(1) : undefined,
       };
 
       saveCharacter(character);

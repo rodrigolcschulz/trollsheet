@@ -14,6 +14,7 @@ import { calculateArmorClass, calculateModifier, calculateProficiencyBonus } fro
 import {
   applyAsiChoice,
   calculateHpGain,
+  getPactMagicForLevel,
   getMaxKnownSpellsForLevel,
   getSpellSlotsForLevel,
   isAsiLevel,
@@ -106,7 +107,14 @@ export function LevelUpFlow({ character, onClose, onComplete }: LevelUpFlowProps
 
     const slots = classId
       ? getSpellSlotsForLevel(classId, nextLevel)
-      : { slotLevel1: character.spellSlotsLevel1, slotLevel2: character.spellSlotsLevel2 };
+      : {
+          slotLevel1: character.spellSlotsLevel1,
+          slotLevel2: character.spellSlotsLevel2,
+          slotLevel4: character.spellSlotsLevel4 ?? 0,
+        };
+    const pactMagic = classId === "warlock"
+      ? getPactMagicForLevel(nextLevel)
+      : undefined;
 
     const updated: Character = {
       ...character,
@@ -116,10 +124,13 @@ export function LevelUpFlow({ character, onClose, onComplete }: LevelUpFlowProps
       currentHp: character.currentHp + hpGain,
       abilities: nextAbilities,
       ac: calculateArmorClass(nextAbilities, character.equipmentIds, character.classId).total,
-      spellSlotsLevel1: slots.slotLevel1,
-      spellSlotsLevel2: slots.slotLevel2,
-      currentSpellSlotsLevel1: slots.slotLevel1,
-      currentSpellSlotsLevel2: slots.slotLevel2,
+      spellSlotsLevel1: pactMagic ? 0 : slots.slotLevel1,
+      spellSlotsLevel2: pactMagic ? 0 : slots.slotLevel2,
+      currentSpellSlotsLevel1: pactMagic ? 0 : slots.slotLevel1,
+      currentSpellSlotsLevel2: pactMagic ? 0 : slots.slotLevel2,
+      spellSlotsLevel4: pactMagic ? 0 : slots.slotLevel4,
+      currentSpellSlotsLevel4: pactMagic ? 0 : slots.slotLevel4,
+      pactMagic,
       knownSpellIds: [...character.knownSpellIds, ...chosenSpellIds],
     };
 
